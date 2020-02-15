@@ -13,7 +13,7 @@ Neural network with fully connected layers, built from scratch.
 
 - Validation techniques: grid search, k-fold cross validation (with parallelization)
 
-- Utilities: rescaling, 1-of-K encoding, read/write routines for dataset where the project has been tested
+- Utilities: rescaling, 1-of-K encoding, plot routines, read/write routines for dataset where the project has been tested on
 
 
 This project has been made as part of the course of Machine Learning @ University of Pisa. `MainCup.py` refers to a private contest whose dataset has not been disclosed.  

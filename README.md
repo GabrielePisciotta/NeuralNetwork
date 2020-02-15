@@ -1,13 +1,13 @@
 # Neural Network (MLP)
 Neural network with fully connected layers, built from scratch.
 
-- Training algorithm: stochastic gradient descent with minibatch (as generalization for both online learning and batch learning)
+- Training algorithm: stochastic gradient descent with minibatch (as generalization for both online learning and batch learning), momentum and moving average
 
 - Loss function: mean squared error (MSE)
 
 - Activation functions: linear, sigmoid, softplus
 
-- Regularization: L2 (Tichonov) 
+- Regularization: L2 (Tichonov), early stopping
 
 - Metrics: accuracy, mean euclidean error (MEE)
 

@@ -1,5 +1,5 @@
 # Neural Network (MLP)
-Neural network with fully connected layers, builded from scratch.
+Neural network with fully connected layers, built from scratch.
 
 - Training algorithm: stochastic gradient descent with minibatch (as generalization for both online learning and batch learning)
 

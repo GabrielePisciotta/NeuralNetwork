@@ -1,7 +1,7 @@
 # Neural Network (MLP)
 Neural network with fully connected layers, built from scratch.
 
-- Training algorithm: stochastic gradient descent with minibatch (as generalization for both online learning and batch learning), momentum and moving average
+- Training algorithm: Stochastic Gradient Descent (SGD) with minibatch (as generalization for both online learning and batch learning), Momentum and moving average
 
 - Loss function: mean squared error (MSE)
 
@@ -16,4 +16,5 @@ Neural network with fully connected layers, built from scratch.
 - Utilities: rescaling, 1-of-K encoding, plot routines, read/write routines for dataset where the project has been tested on
 
 
-This project has been made as part of the course of Machine Learning @ University of Pisa. `MainCup.py` refers to a private contest whose dataset has not been disclosed.  
+This project has been made as part of Machine Learning and Computational Mathematics courses at the University of Pisa. 
+`MainCup.py` refers to a private contest whose dataset has not been disclosed.  

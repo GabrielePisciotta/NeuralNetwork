@@ -9,6 +9,21 @@ class WeightUpdater(object):
     def update(self, weights, bias, input, delta, learning_rate):
         return NotImplementedError()
 
+class LBFGSWeightUpdater(object):
+    def __init__(self):
+        self.delta = 0.0
+
+    def value(self):
+        return self.delta_weights, self.delta_bias
+
+    def update(self, Lambda, S_weights, S_bias):
+        self.delta_weights = Lambda * S_weights
+        self.delta_bias = Lambda * S_bias
+
+    def reset(self):
+        self.delta_weights = 0
+        self.delta_bias = 0
+
 class BaseMomentum():
     def __init__(self, beta):
         self.beta = beta # Moving average coefficient, 0 <= beta <= 1

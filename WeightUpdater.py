@@ -10,15 +10,44 @@ class WeightUpdater(object):
         return NotImplementedError()
 
 class LBFGSWeightUpdater(object):
-    def __init__(self):
+    def __init__(self, m):
         self.delta = 0.0
+        self.m = m
+
 
     def value(self):
         return self.delta_weights, self.delta_bias
 
-    def update(self, Lambda, S_weights, S_bias):
-        self.delta_weights = Lambda * S_weights
-        self.delta_bias = Lambda * S_bias
+    def update(self, weights, bias, input, delta, learning_rate):
+        # Compute the new delta component
+        delta_weights = input.T @ delta
+        delta_bias = np.sum(delta, axis=0, keepdims=True)
+
+        # Compute the momentum term
+        MomentumWeights, MomentumBias = self.Momentum.value()
+
+        # Compute the regularization term
+        RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
+
+        # Compute the overall delta term
+        delta_weights = \
+            (learning_rate * delta_weights) + \
+            (self.alpha * MomentumWeights) - \
+            (self.lamb * RegularizationWeights)
+
+        delta_bias = \
+            (learning_rate * delta_bias) + \
+            (self.alpha * MomentumBias) - \
+            (self.lamb * RegularizationBias)
+
+        # Update the values
+        weights += delta_weights
+        bias += delta_bias
+
+        # Update the momentum state
+        self.Momentum.update(delta_weights, delta_bias)
+
+        return weights, bias
 
     def reset(self):
         self.delta_weights = 0
@@ -38,6 +67,7 @@ class BaseMomentum():
     def update(self, delta_weights, delta_bias):
         self.delta_weights = (self.beta * self.delta_weights) + ((1 - self.beta) * delta_weights)
         self.delta_bias = (self.beta * self.delta_bias) + ((1 - self.beta) * delta_bias)
+
         
     def reset(self):
         self.delta_weights = 0

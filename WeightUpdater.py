@@ -9,50 +9,6 @@ class WeightUpdater(object):
     def update(self, weights, bias, input, delta, learning_rate):
         return NotImplementedError()
 
-class LBFGSWeightUpdater(object):
-    def __init__(self, m):
-        self.delta = 0.0
-        self.m = m
-
-
-    def value(self):
-        return self.delta_weights, self.delta_bias
-
-    def update(self, weights, bias, input, delta, learning_rate):
-        # Compute the new delta component
-        delta_weights = input.T @ delta
-        delta_bias = np.sum(delta, axis=0, keepdims=True)
-
-        # Compute the momentum term
-        MomentumWeights, MomentumBias = self.Momentum.value()
-
-        # Compute the regularization term
-        RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
-
-        # Compute the overall delta term
-        delta_weights = \
-            (learning_rate * delta_weights) + \
-            (self.alpha * MomentumWeights) - \
-            (self.lamb * RegularizationWeights)
-
-        delta_bias = \
-            (learning_rate * delta_bias) + \
-            (self.alpha * MomentumBias) - \
-            (self.lamb * RegularizationBias)
-
-        # Update the values
-        weights += delta_weights
-        bias += delta_bias
-
-        # Update the momentum state
-        self.Momentum.update(delta_weights, delta_bias)
-
-        return weights, bias
-
-    def reset(self):
-        self.delta_weights = 0
-        self.delta_bias = 0
-
 class BaseMomentum():
     def __init__(self, beta):
         self.beta = beta # Moving average coefficient, 0 <= beta <= 1
@@ -139,5 +95,68 @@ class CompoundWeightUpdater(WeightUpdater):
         
         return weights, bias
         
+    def reset(self):
+        self.Momentum.reset()
+
+
+class LBFGSWeightUpdater(WeightUpdater):
+    def __init__(self, momentumType, regularizationType, alpha, beta, lamb):
+        self.alpha = alpha
+        self.beta = beta
+        self.lamb = lamb
+
+        if (alpha == 0): momentumType = 'none'
+        if (lamb == 0): regularizationType = 'none'
+
+        if momentumType == 'none':
+            self.Momentum = NullMomentum(beta)
+        elif momentumType == 'default':
+            self.Momentum = BaseMomentum(beta)
+        else:
+            assert (False), \
+                "Invalid MOMENTUM"
+
+        if regularizationType == 'none':
+            self.Regularization = NullRegularization()  # TODO: insert placeholder
+        elif regularizationType == 'l2':
+            self.Regularization = L2Regularization()
+        else:
+            assert (False), \
+                "Invalid REGULARIZATION"
+
+    def update(self, weights, bias, input, hessian, learning_rate):
+        # Compute the new delta component
+        old_weights = weights.copy()
+        delta_weights = hessian
+        delta_bias = np.sum(hessian, axis=0, keepdims=True)
+
+        #print("delta bias: ", delta_bias)
+        # Compute the momentum term
+        MomentumWeights, MomentumBias = self.Momentum.value()
+
+        # Compute the regularization term
+        RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
+
+        # Compute the overall delta term
+        #delta_weights = \
+        #    (learning_rate * delta_weights) + \
+        #    (self.alpha * MomentumWeights) - \
+        #    (self.lamb * RegularizationWeights)
+
+        #delta_bias = \
+        #    (learning_rate * delta_bias) + \
+        #    (self.alpha * MomentumBias) - \
+        #    (self.lamb * RegularizationBias)
+
+        # Update the values
+
+        weights += delta_weights
+        bias += delta_bias
+
+        # Update the momentum state
+        #self.Momentum.update(delta_weights, delta_bias)
+
+        return weights, bias, (weights-old_weights)
+
     def reset(self):
         self.Momentum.reset()

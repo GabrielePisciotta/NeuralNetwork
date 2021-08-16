@@ -1,18 +1,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
-from Layer import Layer
+from Layer import Layer, LBFGSLayer
 from LossFunctions import SquareLoss
-from TrainingAlgorithms import MiniBatchLearning
+from TrainingAlgorithms import MiniBatchLearning, LBFGSTraining
 from Utilities import plot_error_curve, plot_accuracy_mee
 from Metric import Accuracy, MEE
 
 class NeuralNetwork:
 
-    def __init__(self, training_set, training_labels, losstype, regtype='none', reglambda=0, learning_rate=0.1, epochs=1000, algo='minibatch', batchSize=-1, momentumAlpha=0, momentumBeta=0, restart=1, numHiddenLayers=1, numOfUnitsPerLayer=1, numOfUnitPerOutput=-1, weightsInitializer='default', task='classification', activationFunction='sigmoid'):
+    def __init__(self, training_set, training_labels, losstype, regtype='none', reglambda=0, learning_rate=0.1, epochs=1000, algo='minibatch', batchSize=-1, momentumAlpha=0, momentumBeta=0, restart=1, numHiddenLayers=1, numOfUnitsPerLayer=1, numOfUnitPerOutput=-1, weightsInitializer='default', task='classification', activationFunction='sigmoid', kind='SGD'):
         assert momentumBeta >= 0 and momentumBeta <= 1, \
             "Invalid MOMENTUM BETA"
-        
+
+        self.kind = kind
+
         self.learning_rate = learning_rate
         self.momentumAlpha = momentumAlpha
         self.momentumBeta = momentumBeta
@@ -37,7 +39,12 @@ class NeuralNetwork:
 
         
         assert(batchSize > 0)
-        self.training_algorithm = MiniBatchLearning(batchSize)
+
+        if self.kind == 'SGD':
+            self.training_algorithm = MiniBatchLearning(batchSize)
+        elif self.kind == 'L-BFGS':
+            self.training_algorithm = LBFGSTraining(batchSize)
+            print("Sto usando LBFGS")
 
         self.restart = restart
 
@@ -64,19 +71,34 @@ class NeuralNetwork:
         else:
             number_of_features = self.layers[-1].weights.shape[1]
 
-        self.layers.append( 
-            Layer(
-                number_of_units,
-                number_of_features,
-                self.loss_function,
-                self.regularization_type,
-                self.regularization_lambda,
-                'hidden',
-                momentumAlpha=self.momentumAlpha,
-                momentumBeta=self.momentumBeta,
-                weightsInitializer = weightsInitializer,
-                activationFunction = activation_function
-                ) )
+        if self.kind == 'SGD':
+            self.layers.append(
+                Layer(
+                    number_of_units,
+                    number_of_features,
+                    self.loss_function,
+                    self.regularization_type,
+                    self.regularization_lambda,
+                    'hidden',
+                    momentumAlpha=self.momentumAlpha,
+                    momentumBeta=self.momentumBeta,
+                    weightsInitializer = weightsInitializer,
+                    activationFunction = activation_function
+                    ) )
+        elif self.kind == 'L-BFGS':
+            self.layers.append(
+                LBFGSLayer(
+                    number_of_units,
+                    number_of_features,
+                    self.loss_function,
+                    self.regularization_type,
+                    self.regularization_lambda,
+                    'hidden',
+                    momentumAlpha=self.momentumAlpha,
+                    momentumBeta=self.momentumBeta,
+                    weightsInitializer = weightsInitializer,
+                    activationFunction = activation_function
+                    ) )
 
     def addOutputLayer(self, number_of_units = -1, task='classification'):
         if self.task == 'classification':
@@ -88,18 +110,32 @@ class NeuralNetwork:
             number_of_units = self.labels.shape[1]
         
         if ( self.layers[-1].type == 'hidden' ):
-            self.layers.append(
-                Layer(
-                    number_of_units,
-                    (self.layers[-1].weights.shape[1]),
-                    self.loss_function,
-                    self.regularization_type,
-                    self.regularization_lambda,
-                    'output', 
-                    momentumAlpha=self.momentumAlpha,
-                    momentumBeta=self.momentumBeta,
-                    activationFunction = activation_function
-                    ))
+            if self.kind == 'SGD':
+                self.layers.append(
+                    Layer(
+                        number_of_units,
+                        (self.layers[-1].weights.shape[1]),
+                        self.loss_function,
+                        self.regularization_type,
+                        self.regularization_lambda,
+                        'output',
+                        momentumAlpha=self.momentumAlpha,
+                        momentumBeta=self.momentumBeta,
+                        activationFunction = activation_function
+                        ))
+            elif self.kind == 'L-BFGS':
+                self.layers.append(
+                    LBFGSLayer(
+                        number_of_units,
+                        (self.layers[-1].weights.shape[1]),
+                        self.loss_function,
+                        self.regularization_type,
+                        self.regularization_lambda,
+                        'output',
+                        momentumAlpha=self.momentumAlpha,
+                        momentumBeta=self.momentumBeta,
+                        activationFunction = activation_function
+                        ))
 
     def predict(self, data):
         for layer in self.layers:

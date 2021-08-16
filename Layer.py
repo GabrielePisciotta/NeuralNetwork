@@ -1,7 +1,7 @@
 import numpy as np
 from ActivationFunctions import Sigmoid, Linear, Softplus
 from LossFunctions import SquareLoss
-from WeightUpdater import CompoundWeightUpdater
+from WeightUpdater import CompoundWeightUpdater, LBFGSWeightUpdater
 from math import sqrt
 class Layer:
 
@@ -89,8 +89,13 @@ class LBFGSLayer:
         self.weightsInitializer = weightsInitializer
         self.bias = np.zeros((1, n_of_neurons))
         self.accumulated_gradient = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
-        self.s = []
-        self.y = []
+        self.delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
+        self.old_delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
+
+        self.k = 0
+
+        # Curvature informations
+        self.past_curvatures = []
         self.type = type
 
         if activationFunction == 'sigmoid':
@@ -102,7 +107,7 @@ class LBFGSLayer:
 
         self.loss_function = lossfunction
 
-        self.weights_updater = CompoundWeightUpdater(
+        self.weights_updater = LBFGSWeightUpdater(
             momentumType='default', regularizationType=regtype,
             alpha=momentumAlpha, beta=momentumBeta,
             lamb=reglambda
@@ -117,7 +122,14 @@ class LBFGSLayer:
 
     def evaluate_input(self, input):
         self.input = input
+
+        # Store the previous net (if exists)
+        if hasattr(self, 'net'):
+            self.old_net = self.net.copy()
+
+        # Update the net
         self.net = (input @ self.weights) + self.bias
+
         self.output = self.activation_function.evaluate(self.net)
         return self.output
 
@@ -125,6 +137,14 @@ class LBFGSLayer:
     #               output layer, and we pass delta.dot(self.weights.T) for the hidden layer.
     # @return the gradient
     def backward(self, value, learning_rate):
+
+        first_gradient = True
+
+        # Store the previous gradient (if exists)
+        if hasattr(self, 'delta'):
+            self.old_delta = self.delta.copy()
+
+
         if self.type == 'output':
             loss_deriv_by_o = (-1) * self.loss_function.deriv(value, self.output)
             activ_deriv = self.activation_function.deriv(self.net)
@@ -132,7 +152,13 @@ class LBFGSLayer:
         else:
             self.delta = value * self.activation_function.deriv(self.net)
 
-        return self.delta
+        #print("Delta shape: ", self.delta.shape)
+
+        if first_gradient:
+            self.old_delta = self.delta-self.delta
+            first_gradient = False
+
+        return self.delta, self.old_delta
 
     def initializeWeights(self):
         if self.weightsInitializer == 'default':

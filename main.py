@@ -5,19 +5,19 @@ from NeuralNetwork import NeuralNetwork
 from Utilities import ReadMonk
 
 
-def main():
+def main(kind):
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
     
     algo = 'minibatch'
-    batchSize = 5
-    momentumAlpha = 0.8
-    momentumBeta = 0.8
+    batchSize = len(train_examples)
+    momentumAlpha = 1#.8
+    momentumBeta = 1#.8
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
     regularizationlambda = 0.0000 #0.001
 
-    learnRate = 4.5 #0.2
+    learnRate = 0.2#4.5 #0.2
 
     tr_mse = []
     ts_mse = []
@@ -38,10 +38,11 @@ def main():
                 batchSize=batchSize,
                 restart=1,
                 numHiddenLayers= 1,
-                numOfUnitsPerLayer = 4,
+                numOfUnitsPerLayer = 10,
                 numOfUnitPerOutput = 1,
                 weightsInitializer = 'default',
-                task = 'classification'
+                task = 'classification',
+                kind = kind
         )
 
 
@@ -282,4 +283,5 @@ def GridSearch_Monk3():
         kf.validate(gs.get_grid()[number], message_for_pbar, 0.01)
 
 if __name__ == '__main__':
-    main()
+    main(kind='L-BFGS')
+    #main(kind='SGD')

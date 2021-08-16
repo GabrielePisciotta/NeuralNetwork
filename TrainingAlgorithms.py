@@ -130,6 +130,63 @@ class LBFGSTraining(TrainingAlgorithm):
     def reset(self):
         self.epoch = 0
 
+    def get_direction(self, layer):
+
+        # TODO: Check secant equation conditions (s_{k}^T y_{k} > 0) if layer.s[k].T @ layer.y[k] > 0:
+        q_old = layer.accumulated_gradient.copy()
+
+        q = layer.input.T @ layer.delta
+        layer.accumulated_gradient = q
+
+        y = q-q_old
+
+        # Since we build the approximation of the hessian starting from the identity matrix,
+        # following the equation H_{k}^{0} = \gamma_{k}*I, where \gamma_{k} = \frac{s^T_{k-1}y_{k-1}}{y^T_{k-1}y_{k-1}}
+        # (eq. 7.20 from the Numerical Optimization book)
+        H = np.eye(q.shape[0], q.shape[1])
+
+        # We'll skip the first gamma creation (we have not sufficient information from the past curvatures)
+        if len(layer.past_curvatures) > 0:
+            s = layer.past_curvatures[-1][0]
+            y = layer.past_curvatures[-1][1]
+            gamma = (s - y)/(y*y)
+            """gamma = np.asscalar(
+                (layer.past_curvatures[-1][0] * layer.past_curvatures[-1][1]) # s^T_{k-1}y_{k-1}
+                /
+                (layer.past_curvatures[-1][1] * layer.past_curvatures[-1][1]) # y^T_{k-1}y_{k-1}
+            )"""
+            H *= gamma  # \gamma_{k}*I
+
+        # Variables used to store ρ and α
+        list_ρ = []
+        list_α = []
+
+        # Iterate through the latest past curvatures available (tail to head)
+        for past_curvature in layer.past_curvatures:
+
+            ρ = 1 / past_curvature[1] * past_curvature[0]
+            α = ρ * past_curvature[0] * q
+            q -= α * past_curvature[1]
+
+            # Save rho and alpha for further usages in the next loop
+            list_ρ.insert(0, ρ)
+            list_α.insert(0, α)
+
+        r = H * q
+
+        # Iterate through the latest past curvatures available (head to tail)
+        for idx, past_curvature in enumerate(reversed(layer.past_curvatures)):
+            α = list_α[idx]
+            ρ = list_ρ[idx][0]
+
+            β = ρ * past_curvature[1] * r
+
+            parentesi = (α - β)
+            r += past_curvature[0] * parentesi
+        # End of 7.4
+
+        return -r, y
+
     def train(self,  layers: List[LBFGSLayer], training_set, labels, learning_rate, loss_function, number_of_iterations, testFunction,
               minimumVariation, validation_set=np.array([]), validation_labels=np.array([]), test_set=np.array([]),
               test_labels=np.array([])):
@@ -138,6 +195,7 @@ class LBFGSTraining(TrainingAlgorithm):
         accuracy_mee = []
         accuracy_mee_tr = []
 
+        m = 7# TODO: parametrize this
         TRLen = training_set.shape[0]  # Size of the whole training set
         batchRanges = range(self.batchSize, TRLen + 1, self.batchSize)
 
@@ -184,31 +242,50 @@ class LBFGSTraining(TrainingAlgorithm):
                 # After we've finished the feed forward phase, we calculate the delta of each layer
                 # and update weights.
                 accumulated_gradient = label
+
+                n_of_layers = 0
                 for layer in reversed(layers):
+                    k = layer.k
 
-                    old_gradient = layer.delta
+                    # Save the old weights
+                    old_weights = layer.weights.copy()
 
-                    gradient = layer.backward(accumulated_gradient, rate_multiplier * learning_rate)
+                    # Compute gradient
+                    gradient, old_gradient = layer.backward(accumulated_gradient, rate_multiplier * learning_rate)
 
                     # The following is needed in the following step of the backward propagation
                     accumulated_gradient = gradient @ layer.weights.T
-                    layer.accumulated_gradient = accumulated_gradient
 
-                    #  Save previous y_{k-1}= \nabla f_{k} - \nabla f_{k-1}
-                    difference_between_gradients = gradient-old_gradient
-                    layer.y.append(difference_between_gradients)
-
-                    # TODO: Check secant equation conditions (s_{k}^T y_{k} > 0)
-
+                    # Compute the direction (Algorithm 7.4 from the book, to compute -H ∇f
+                    direction, y = self.get_direction(layer)
 
                     # Update weights
-                    layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
-                                                                          layer.bias,
-                                                                          layer.input,
-                                                                          layer.delta,
-                                                                          learning_rate)
+                    layer.weights, layer.bias, s = layer.weights_updater.update(layer.weights,
+                                                                             layer.bias,
+                                                                             layer.input,
+                                                                             direction,
+                                                                             100*learning_rate)
 
-                # Compute directions (algorithm 7.4 of Numerical Optimization book)
+                    # Create the list of the new curvature, taking into account that the first element is
+                    # s_{k}= w_{k+1} - w_{k} while the second one is the y
+
+                    if layer.k in layer.past_curvatures:
+                        layer.past_curvatures[layer.k] = [s, y]
+                    else:
+                        layer.past_curvatures.insert(layer.k,  [s, y])
+
+                    # Remove the oldest element in order to keep the list with the desired size (m)
+                    if len(layer.past_curvatures) > m:
+                        #print("[INFO] Removing old curvatures, at iter ", k)
+                        layer.past_curvatures.pop(0)
+
+                    if len(layer.past_curvatures) > m:
+                        layer.s.pop(0)
+
+                    # Update k
+                    layer.k += 1
+
+                    n_of_layers +=1
 
             data = training_set
             for layer in layers:

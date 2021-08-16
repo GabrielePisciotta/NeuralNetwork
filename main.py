@@ -17,7 +17,7 @@ def main(kind):
     regularizationtype = 'l2'
     regularizationlambda = 0.0000 #0.001
 
-    learnRate = 0.2#4.5 #0.2
+    learnRate = 4.5#4.5 #0.2
 
     tr_mse = []
     ts_mse = []
@@ -38,7 +38,7 @@ def main(kind):
                 batchSize=batchSize,
                 restart=1,
                 numHiddenLayers= 1,
-                numOfUnitsPerLayer = 10,
+                numOfUnitsPerLayer = 4,
                 numOfUnitPerOutput = 1,
                 weightsInitializer = 'default',
                 task = 'classification',

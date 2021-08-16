@@ -124,13 +124,11 @@ class LBFGSWeightUpdater(WeightUpdater):
             assert (False), \
                 "Invalid REGULARIZATION"
 
-    def update(self, weights, bias, input, hessian, learning_rate):
+    def update(self, weights, bias, input, delta, learning_rate):
         # Compute the new delta component
-        old_weights = weights.copy()
-        delta_weights = hessian
-        delta_bias = np.sum(hessian, axis=0, keepdims=True)
+        delta_weights = delta
+        delta_bias = np.sum(delta, axis=0, keepdims=True)
 
-        #print("delta bias: ", delta_bias)
         # Compute the momentum term
         MomentumWeights, MomentumBias = self.Momentum.value()
 
@@ -138,25 +136,24 @@ class LBFGSWeightUpdater(WeightUpdater):
         RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
 
         # Compute the overall delta term
-        #delta_weights = \
-        #    (learning_rate * delta_weights) + \
-        #    (self.alpha * MomentumWeights) - \
-        #    (self.lamb * RegularizationWeights)
+        delta_weights = \
+            (learning_rate * delta_weights) + \
+            (self.alpha * MomentumWeights) - \
+            (self.lamb * RegularizationWeights)
 
-        #delta_bias = \
-        #    (learning_rate * delta_bias) + \
-        #    (self.alpha * MomentumBias) - \
-        #    (self.lamb * RegularizationBias)
+        delta_bias = \
+            (learning_rate * delta_bias) + \
+            (self.alpha * MomentumBias) - \
+            (self.lamb * RegularizationBias)
 
         # Update the values
-
         weights += delta_weights
         bias += delta_bias
 
         # Update the momentum state
-        #self.Momentum.update(delta_weights, delta_bias)
+        self.Momentum.update(delta_weights, delta_bias)
 
-        return weights, bias, (weights-old_weights)
+        return weights, bias
 
     def reset(self):
         self.Momentum.reset()

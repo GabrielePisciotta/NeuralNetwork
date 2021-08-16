@@ -91,6 +91,7 @@ class LBFGSLayer:
         self.accumulated_gradient = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
         self.delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
         self.old_delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
+        self.deltaweights = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
 
         self.k = 0
 
@@ -120,6 +121,12 @@ class LBFGSLayer:
     def getWeightsTemp(self):
         return self.weights[0][0]
 
+    def computeGradientWeight(self):
+        self.deltaweights = self.input.T @ self.delta
+
+    def getGradientWeight(self):
+        return self.deltaweights
+
     def evaluate_input(self, input):
         self.input = input
 
@@ -138,12 +145,9 @@ class LBFGSLayer:
     # @return the gradient
     def backward(self, value, learning_rate):
 
-        first_gradient = True
-
         # Store the previous gradient (if exists)
         if hasattr(self, 'delta'):
             self.old_delta = self.delta.copy()
-
 
         if self.type == 'output':
             loss_deriv_by_o = (-1) * self.loss_function.deriv(value, self.output)
@@ -152,18 +156,12 @@ class LBFGSLayer:
         else:
             self.delta = value * self.activation_function.deriv(self.net)
 
-        #print("Delta shape: ", self.delta.shape)
-
-        if first_gradient:
-            self.old_delta = self.delta-self.delta
-            first_gradient = False
-
         return self.delta, self.old_delta
 
     def initializeWeights(self):
         if self.weightsInitializer == 'default':
             self.weights = np.random.uniform(-0.2, 0.2, size=(self.n_of_features, self.n_of_neurons))
-            self.bias = np.zeros((1, self.n_of_neurons))
+            self.bias = np.ones((1, self.n_of_neurons))
 
         # As stated in Glorot and Bengio (2010)
         elif self.weightsInitializer == 'xavier':

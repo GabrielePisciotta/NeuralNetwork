@@ -61,8 +61,6 @@ def strong_wolfe(f, g, xk, alpha, pk, c2):
   return wolfe_armijo_condition(f, g, xk, alpha, pk) and abs(np.dot(g(xk + alpha * pk), pk)) <= c2 * abs(np.dot(g(xk), pk))
 
 
-
-
 #BACKTRACKING - line search (algo 3.1)
 '''
 -If the line search algorithm chooses its candidate step lengths appropriately, by using the "backtracking" approach, 
@@ -132,20 +130,143 @@ def backtracking(f, g, xk, pk):
   
   -For Newton and quasi-Newton methods, the step α0=1 should always be used as the initial trial step length.
 '''
+def quadraticApproximation(alphaLow, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):
+  return -(searchDirectionDotGradientAlphaLow * alphaHi**2) / (2 * (phiAlphaHi - phiAlphaLo - searchDirectionDotGradientAlphaLow * alphaHi))     
 
-def quadraticApproximation(f, g, xk, pk):
-  phi_zero = f(xk)
-  phi_primo_zero = np.dot(g(xk), pk)
-  phi_alpha_zero = 1
+def cubicApproximation(alphaLow, phiAlphaLow, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi, searchDirectionDotGradientAlphaHi):
+  d1 = searchDirectionDotGradientAlphaLow + searchDirectionDotGradientAlphaHi - 3 * (phiAlphaLow - phiAlphaHi) / (alphaLow - alphaHi)
+  d2 = (1 if np.signbit(alphaHi - alphaLow) else -1) * math.sqrt(d1**2 - searchDirectionDotGradientAlphaLow * searchDirectionDotGradientAlphaHi)
+  return alphaHi - (alphaHi - alphaLow) * ((searchDirectionDotGradientAlphaHi + d2 - d1) / searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2)
 
-  return - ((phi_primo_zero * phi_alpha_zero**2) / (2 * (phi_primo_zero - phi_zero - phi_primo_zero * phi_alpha_zero)))               
+# TO-DO chiedi a Gabriele se ha qualcosa di simile
+def lineSearchEvaluation(stepSize, weightDecay, momentum):
+  '''
+    arma::mat activateWeight = input->t();
+    arma::mat outputActivateBatch;
+    arma::mat currentBatchError;
+    arma::mat partialDerivativeOutput;
 
-def cubicInterpolationApproximation(f, g, xk, pk):
-  
+    updateWeight(stepSize, weightDecay, momentum);
+
+    forward(std::move(*input), std::move(outputActivateBatch));
+
+    error(std::move(*inputLabel),
+          std::move(outputActivateBatch),
+          std::move(partialDerivativeOutput),
+          std::move(currentBatchError),
+          weightDecay);
+
+    auto currentLayer = net.rbegin();
+    currentLayer->OutputLayerGradient(std::move(currentBatchError));
+    //currentLayer->SetDirection(std::move(currentLayer->GetGradientWeight()));
+    arma::mat currentGradientWeight;
+    currentLayer->RetroPropagationError(std::move(currentGradientWeight), momentum);
+    currentLayer++;
+    // Iterate from the precedent Layer of the tail to the head
+    for (; currentLayer != net.rend(); currentLayer++) {
+      currentLayer->Gradient(std::move(currentGradientWeight));
+      //currentLayer->SetDirection(std::move(currentLayer->GetGradientWeight()));
+      currentLayer->RetroPropagationError(std::move(currentGradientWeight), momentum);
+    }
+
+    return arma::as_scalar(currentBatchError);
+  '''
   return 0
 
+'''
+Compute dot product between the gradients store inside the layers \phi'
+''' 
+def computeDirectionDescent(currNetwork):
+  searchDirectionDotGradient = 0
+  for currentLayer in currNetwork:
+    searchDirectionDotGradient += np.dot(currentLayer.GetGradientWeight(), currentLayer.GetDirection())
+  return searchDirectionDotGradient
 
-double d1 = searchDirectionDotGradientAlphaLo + searchDirectionDotGradientAlphaHi - 3 * (
-      phiAlphaLo - phiAlphaHi) / (alphaLo - alphaHi);
-  double d2 = (std::signbit(alphaHi - alphaLo) ? -1 : 1) *
-      std::sqrt(std::pow(d1, 2) - searchDirectionDotGradientAlphaLo * searchDirectionDotGradientAlphaHi);
+# LINE SEARCH ALGORITHM FOR THE WOLFE CONDITIONS
+'''
+The parameter α_max is a user-supplied bound on the maximum step length allowed.
+'''
+def lineSearch(currNetwork, weightDecay, momentum, c1 = 0.001, c2 = 0.9):
+  alpha_0 = 0
+  alpha_max = 0.99    # α_max > 0
+  currentAlpha = random.uniform(alpha_0,alpha_max)      # α_1 ∈ (0, α_max)
+ 
+  initialSearchDirectionDotGradient = computeDirectionDescent(currNetwork)
+
+  # Check descent direction
+  if (initialSearchDirectionDotGradient > 0.0):
+    return False
+  
+  phi0 = lineSearchEvaluation(0, weightDecay, momentum)
+  previousAlpha = alpha_0
+  phiPreviousAlpha = 10000 #???????????????????  double phiPreviousAlpha = std::numeric_limits<double>::max(); 
+  for i in range(100):
+    phiCurrentAlpha = lineSearchEvaluation(currentAlpha, weightDecay, momentum)
+    if((phiCurrentAlpha >phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (i>1 and phiCurrentAlpha >= phiPreviousAlpha)):
+      return zoom(currNetwork, weightDecay, momentum, c1, c2, previousAlpha, currentAlpha, phi0, initialSearchDirectionDotGradient)
+    
+    currentSearchDirectionDotGradient = computeDirectionDescent(currNetwork)
+
+    if (abs(currentSearchDirectionDotGradient) <= c2 * initialSearchDirectionDotGradient):
+      return currentAlpha
+    if (currentSearchDirectionDotGradient >= 0):
+      return zoom(currNetwork, weightDecay, momentum, c1, c2, currentAlpha, previousAlpha, phi0, initialSearchDirectionDotGradient)
+    phiPreviousAlpha = phiCurrentAlpha
+    previousAlpha = currentAlpha
+    currentAlpha = random.uniform(previousAlpha,alpha_max)
+  return currentAlpha
+
+def zoom(currNetwork, weightDecay, momentum, c1, c2, alphaLow, alphaHi, phi0, initialSearchDirectionDotGradient):
+  i = 0
+  alphaJ = 1
+
+  # limit number of iteration to obtain a step length in a finite time
+  while (i < 100):
+    # Compute \phi(\alpha_{j})
+    phiCurrentAlphaJ = lineSearchEvaluation(alphaJ, weightDecay, momentum)
+
+    # Compute \phi(\alpha_{lo})
+    phiCurrentAlphaLow = lineSearchEvaluation(alphaLow, weightDecay, momentum)
+    currentSearchDirectionDotGradientAlphaLow = computeDirectionDescent(currNetwork)
+
+    # Compute \alpha_{hi}
+    phiCurrentAlphaHi = lineSearchEvaluation(alphaHi, weightDecay, momentum)
+    currentSearchDirectionDotGradientAlphaHi = computeDirectionDescent(currNetwork)
+
+    # quadraticInterpolation
+    if (phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient):
+      alphaJ = quadraticApproximation(alphaLow,
+                                      phiCurrentAlphaLow,
+                                      currentSearchDirectionDotGradientAlphaLow,
+                                      alphaHi,
+                                      phiCurrentAlphaHi)
+      phiCurrentAlphaJ = lineSearchEvaluation(alphaJ, weightDecay, momentum)
+    
+    # cubicInterpolation
+    if (phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient):
+      alphaCubicInter = cubicApproximation(alphaLow, phiCurrentAlphaLow, currentSearchDirectionDotGradientAlphaLow, alphaHi, phiCurrentAlphaHi, currentSearchDirectionDotGradientAlphaHi)
+     
+      if (alphaCubicInter > 0 and alphaCubicInter <= 1):
+        alphaJ = alphaCubicInter
+        phiCurrentAlphaJ = lineSearchEvaluation(alphaJ, weightDecay, momentum)
+
+    # Bisection interpolation if quadratic goes wrong
+    if (alphaJ == 0):
+      alphaJ = alphaLow + (alphaHi - alphaLow) / 2
+      phiCurrentAlphaJ = lineSearchEvaluation(alphaJ, weightDecay, momentum)
+
+    if ((phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient) or (phiCurrentAlphaJ >= phiCurrentAlphaLow)):
+      alphaHi = alphaJ
+    else:
+      # Compute \phi'(\alpha_{j})
+      currentSearchDirectionDotGradient = computeDirectionDescent(currNetwork)
+
+      if (abs(currentSearchDirectionDotGradient) <= -c2 * initialSearchDirectionDotGradient):
+        return alphaJ
+
+      if (currentSearchDirectionDotGradient * (alphaHi - alphaLow) >= 0):
+        alphaHi = alphaLow
+      alphaLow = alphaJ
+
+    i=i+1
+  return alphaJ

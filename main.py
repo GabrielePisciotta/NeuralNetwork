@@ -10,14 +10,14 @@ def main(kind):
     
     algo = 'minibatch'
     batchSize = len(train_examples)
-    momentumAlpha = 1#.8
-    momentumBeta = 1#.8
+    momentumAlpha = 0.8#.8
+    momentumBeta = 0#.8
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
     regularizationlambda = 0.0000 #0.001
 
-    learnRate = 4.5#4.5 #0.2
+    learnRate = 0.01#4.5 #0.2
 
     tr_mse = []
     ts_mse = []
@@ -42,7 +42,9 @@ def main(kind):
                 numOfUnitPerOutput = 1,
                 weightsInitializer = 'default',
                 task = 'classification',
-                kind = kind
+                kind = kind,
+                epochs=1000
+
         )
 
 

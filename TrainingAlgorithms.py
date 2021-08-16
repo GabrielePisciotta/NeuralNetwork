@@ -152,8 +152,10 @@ class LBFGSTraining(TrainingAlgorithm):
             s = layer.past_curvatures[-1][0]
             y = layer.past_curvatures[-1][1]
 
-            γ = (s * y)/(y * y) # s^T_{k-1}y_{k-1} / y^T_{k-1}y_{k-1}
-            H = H * γ  # γ_{k}*I
+            #γ = (s * y)/(y * y) # s^T_{k-1}y_{k-1} / y^T_{k-1}y_{k-1}
+            γ = np.dot(s.T,y) / np.dot(y.T,y)
+            #H = H * γ  # γ_{k}*I
+            H = np.dot(H, γ) # γ_{k}*I
 
         # Variables used to store ρ and α
         list_ρ = []
@@ -273,6 +275,9 @@ class LBFGSTraining(TrainingAlgorithm):
             for layer in layers:
                 data = layer.evaluate_input(data)
 
+            from sklearn.metrics import accuracy_score
+            #print("MEE/Accuracy on Train{}".format(accuracy_score(labels.tolist(), data.tolist())))
+
             # Save the error on the validation set for the  graph
             error_on_validationset.append(np.sum(loss_function.loss(validation_labels, data)) / len(validation_set))
 
@@ -287,7 +292,7 @@ class LBFGSTraining(TrainingAlgorithm):
             accuracy_mee_tr.append(testFunction(training_set, labels))
 
             print("MEE/Accuracy on Train{}".format(accuracy_mee_tr[-1]))
-            # print("MEE/Accuracy Valid{}".format(accuracy_mee[-1]))
+            print("MEE/Accuracy Valid{}".format(accuracy_mee[-1]))
 
             # Default stop condition
             StopCondition = True

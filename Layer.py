@@ -92,7 +92,7 @@ class LBFGSLayer:
         self.delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
         self.old_delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
         self.deltaweights = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
-
+        self.direction = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
         self.k = 0
 
         # Curvature informations
@@ -123,6 +123,9 @@ class LBFGSLayer:
 
     def computeGradientWeight(self):
         self.deltaweights = self.input.T @ self.delta
+
+    def GetDirection(self):
+        return self.direction
 
     def getGradientWeight(self):
         return self.deltaweights

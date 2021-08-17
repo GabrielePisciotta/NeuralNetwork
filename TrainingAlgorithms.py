@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.utils import shuffle
 from Layer import *
 from typing import List
+import random
+from LBGFS import *
 
 RandomState = 4200000
 
@@ -140,7 +142,8 @@ class LBFGSTraining(TrainingAlgorithm):
         q = q.copy()
         shape = q.shape
 
-        # TODO: Check secant equation conditions (s_{k}^T y_{k} > 0) if layer.s[k].T @ layer.y[k] > 0:
+        # TODO: Check secant equation conditions (s_{k}^T y_{k} > 0)
+        #  if np.dot(s.T, y) < 0: print("ERRORE")
 
         # Since we build the approximation of the hessian starting from the identity matrix,
         # following the equation H_{k}^{0} = γ_{k}*I, where γ_{k} = \frac{s^T_{k-1}y_{k-1}}{y^T_{k-1}y_{k-1}}
@@ -190,19 +193,49 @@ class LBFGSTraining(TrainingAlgorithm):
 
         return -r
 
-    def train(self,  layers: List[LBFGSLayer], training_set, labels, learning_rate, loss_function, number_of_iterations, testFunction,
-              minimumVariation, validation_set=np.array([]), validation_labels=np.array([]), test_set=np.array([]),
-              test_labels=np.array([])):
-        error_on_trainingset = []
-        error_on_validationset = []
-        accuracy_mee = []
-        accuracy_mee_tr = []
 
-        m = 3# TODO: parametrize this
+    def lineSearch(self, currNetwork, c1=0.001, c2=0.9):
+        alpha_0 = 0
+        alpha_max = 0.99  # α_max > 0
+        currentAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
 
-        eta_0 = learning_rate
-        self.epoch = 0
-        while self.epoch < number_of_iterations:
+        initialSearchDirectionDotGradient = computeDirectionDescent(currNetwork)
+
+        # Check descent direction
+        if (initialSearchDirectionDotGradient > 0.0):
+            return False
+
+        phi0 = lineSearchEvaluation(0)
+        previousAlpha = alpha_0
+
+        phiPreviousAlpha = np.finfo.max
+        for i in range(100):
+            phiCurrentAlpha = lineSearchEvaluation(currentAlpha)
+            if ((phiCurrentAlpha > phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (
+                    i > 1 and phiCurrentAlpha >= phiPreviousAlpha)):
+                return zoom(currNetwork, c1, c2, previousAlpha, currentAlpha, phi0,
+                            initialSearchDirectionDotGradient)
+
+            currentSearchDirectionDotGradient = computeDirectionDescent(currNetwork)
+
+            if (abs(currentSearchDirectionDotGradient) <= c2 * initialSearchDirectionDotGradient):
+                return currentAlpha
+            if (currentSearchDirectionDotGradient >= 0):
+                return zoom(currNetwork, c1, c2, currentAlpha, previousAlpha, phi0,
+                            initialSearchDirectionDotGradient)
+            phiPreviousAlpha = phiCurrentAlpha
+            previousAlpha = currentAlpha
+            currentAlpha = random.uniform(previousAlpha, alpha_max)
+        return currentAlpha
+
+    def lineSearchEvaluation(self,  layers: List[LBFGSLayer], params):
+            training_set, labels, stepSize, loss_function, testFunction, validation_set, validation_labels, test_set, test_labels = params
+            error_on_trainingset = []
+            error_on_validationset = []
+            accuracy_mee = []
+            accuracy_mee_tr = []
+
+            m = 3  # TODO: parametrize this
 
             training_set, labels = shuffle(training_set, labels, random_state=RandomState)
 
@@ -226,7 +259,7 @@ class LBFGSTraining(TrainingAlgorithm):
             for layer in reversed(layers):
 
                 # Compute gradient
-                gradient, old_gradient = layer.backward(accumulated_gradient,  learning_rate)
+                gradient, old_gradient = layer.backward(accumulated_gradient, stepSize)
 
                 # The following is needed in the following step of the backward propagation
                 accumulated_gradient = gradient @ layer.weights.T
@@ -235,19 +268,22 @@ class LBFGSTraining(TrainingAlgorithm):
                 layer.computeGradientWeight()
                 q = layer.getGradientWeight().copy()
 
-                y = q-q_old
+                y = q - q_old
 
                 # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
                 direction = self.get_direction(layer)
+                layer.direction = direction
 
                 old_weights = layer.weights.copy()
+
+                stepSize = lineSearch(layers, params)
 
                 # Update weights
                 layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                          layer.bias,
                                                                          layer.input,
                                                                          direction,
-                                                                         learning_rate)
+                                                                         stepSize)
 
                 s = layer.weights - old_weights
                 # Create the list of the new curvature, taking into account that the first element is
@@ -255,7 +291,7 @@ class LBFGSTraining(TrainingAlgorithm):
                 if layer.k in layer.past_curvatures:
                     layer.past_curvatures[layer.k] = [s, y]
                 else:
-                    layer.past_curvatures.insert(layer.k,  [s, y])
+                    layer.past_curvatures.insert(layer.k, [s, y])
 
                 # Remove the oldest element in order to keep the list with the desired size (m)
                 if len(layer.past_curvatures) > m:
@@ -276,7 +312,7 @@ class LBFGSTraining(TrainingAlgorithm):
                 data = layer.evaluate_input(data)
 
             from sklearn.metrics import accuracy_score
-            #print("MEE/Accuracy on Train{}".format(accuracy_score(labels.tolist(), data.tolist())))
+            # print("MEE/Accuracy on Train{}".format(accuracy_score(labels.tolist(), data.tolist())))
 
             # Save the error on the validation set for the  graph
             error_on_validationset.append(np.sum(loss_function.loss(validation_labels, data)) / len(validation_set))
@@ -291,19 +327,27 @@ class LBFGSTraining(TrainingAlgorithm):
             # Save the accuracy/mee on test set for the graph
             accuracy_mee_tr.append(testFunction(training_set, labels))
 
-            print("MEE/Accuracy on Train{}".format(accuracy_mee_tr[-1]))
-            print("MEE/Accuracy Valid{}".format(accuracy_mee[-1]))
+            print("[LineSearchEvaluate] MEE/Accuracy on Train{}".format(accuracy_mee_tr[-1]))
+            print("[LineSearchEvaluate] MEE/Accuracy Valid{}".format(accuracy_mee[-1]))
 
-            # Default stop condition
-            StopCondition = True
-            if (StopCondition):
-                if (self.epoch > 10):
-                    diff = (error_on_trainingset[self.epoch] - error_on_trainingset[self.epoch - 1]) / \
-                           error_on_trainingset[self.epoch]
-                    if (abs(diff) < minimumVariation and abs(
-                            error_on_trainingset[self.epoch]) < minimumVariation) or abs(
-                            error_on_validationset[self.epoch]) < minimumVariation:
-                        return error_on_trainingset, self.epoch, error_on_validationset, accuracy_mee, accuracy_mee_tr
+            return error_on_trainingset, error_on_validationset, accuracy_mee, accuracy_mee_tr
+
+    def train(self,  layers: List[LBFGSLayer], training_set, labels, learning_rate, loss_function, number_of_iterations, testFunction,
+              minimumVariation, validation_set=np.array([]), validation_labels=np.array([]), test_set=np.array([]),
+              test_labels=np.array([])):
+
+        m = 3# TODO: parametrize this
+
+
+        self.epoch = 0
+
+        stepSize = 1
+
+        while self.epoch < number_of_iterations:
+            param = training_set, labels, stepSize, loss_function, testFunction, validation_set, validation_labels, test_set, test_labels
+            error_on_trainingset, error_on_validationset, accuracy_mee, accuracy_mee_tr = \
+                self.lineSearchEvaluation(layers, param)
 
             self.epoch += 1
-        return error_on_trainingset, self.epoch, error_on_validationset, accuracy_mee, accuracy_mee_tr
+
+        return error_on_trainingset, error_on_validationset, self.epoch, accuracy_mee, accuracy_mee_tr

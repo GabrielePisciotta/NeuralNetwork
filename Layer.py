@@ -88,11 +88,11 @@ class LBFGSLayer:
         self.n_of_features = n_of_features
         self.weightsInitializer = weightsInitializer
         self.bias = np.zeros((1, n_of_neurons))
-        self.accumulated_gradient = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
-        self.delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
-        self.old_delta = np.zeros((n_of_features+1, n_of_neurons)) # TODO: sicuri?
-        self.deltaweights = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
-        self.direction = np.zeros((n_of_features, n_of_neurons)) # TODO: sicuri?
+        self.accumulated_gradient = np.zeros((n_of_features, n_of_neurons))
+        self.delta = np.zeros((n_of_features+1, n_of_neurons))
+        self.old_delta = np.zeros((n_of_features+1, n_of_neurons))
+        self.deltaweights = np.zeros((n_of_features, n_of_neurons))
+        self.direction = np.zeros((n_of_features, n_of_neurons))
         self.k = 0
 
         # Curvature informations

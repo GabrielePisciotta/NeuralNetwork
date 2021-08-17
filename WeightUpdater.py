@@ -125,6 +125,7 @@ class LBFGSWeightUpdater(WeightUpdater):
                 "Invalid REGULARIZATION"
 
     def update(self, weights, bias, input, delta, learning_rate):
+
         # Compute the new delta component
         delta_weights = delta
         delta_bias = np.sum(delta, axis=0, keepdims=True)

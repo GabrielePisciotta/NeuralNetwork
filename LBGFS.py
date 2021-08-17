@@ -194,15 +194,13 @@ def lineSearch(currNetwork, params, c1=0.001, c2=0.9):
     if (initialSearchDirectionDotGradient.any() > 0.0):  #TODO Rimuovere porcata
         return False
 
-    tr = TrainingAlgorithms.LBFGSTraining(124312321213)
-
-    phi0 = tr.lineSearchEvaluation([], params)
+    phi0 = self.lineSearchEvaluation([], params)
     
     previousAlpha = alpha_0
 
     phiPreviousAlpha = 999999999 #TODO cambiare porcata
     for i in range(100):
-        phiCurrentAlpha = tr.lineSearchEvaluation(currentAlpha, params)
+        phiCurrentAlpha = self.lineSearchEvaluation(currentAlpha, params)
         if ((phiCurrentAlpha > phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (
                 i > 1 and phiCurrentAlpha >= phiPreviousAlpha)):
             return zoom(currNetwork, c1, c2, previousAlpha, currentAlpha, phi0,
@@ -229,14 +227,14 @@ def zoom(currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialSearchDirectionDot
     # limit number of iteration to obtain a step length in a finite time
     while (i < 100):
         # Compute \phi(\alpha_{j})
-        phiCurrentAlphaJ =tr.lineSearchEvaluation(alphaJ, params)
+        phiCurrentAlphaJ =self.lineSearchEvaluation(alphaJ, params)
 
         # Compute \phi(\alpha_{lo})
-        phiCurrentAlphaLow =tr.lineSearchEvaluation(alphaLow, params)
+        phiCurrentAlphaLow =self.lineSearchEvaluation(alphaLow, params)
         currentSearchDirectionDotGradientAlphaLow = computeDirectionDescent(currNetwork)
 
         # Compute \alpha_{hi}
-        phiCurrentAlphaHi =tr.lineSearchEvaluation(alphaHi, params)
+        phiCurrentAlphaHi =self.lineSearchEvaluation(alphaHi, params)
         currentSearchDirectionDotGradientAlphaHi = computeDirectionDescent(currNetwork)
 
         # quadraticInterpolation
@@ -246,7 +244,7 @@ def zoom(currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialSearchDirectionDot
                                             currentSearchDirectionDotGradientAlphaLow,
                                             alphaHi,
                                             phiCurrentAlphaHi)
-            phiCurrentAlphaJ =tr.lineSearchEvaluation(alphaJ, params)
+            phiCurrentAlphaJ =self.lineSearchEvaluation(alphaJ, params)
 
         # cubicInterpolation
         if (phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient):
@@ -256,12 +254,12 @@ def zoom(currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialSearchDirectionDot
 
             if (alphaCubicInter > 0 and alphaCubicInter <= 1):
                 alphaJ = alphaCubicInter
-                phiCurrentAlphaJ =tr.lineSearchEvaluation(alphaJ, params)
+                phiCurrentAlphaJ =self.lineSearchEvaluation(alphaJ, params)
 
         # Bisection interpolation if quadratic goes wrong
         if (alphaJ == 0):
             alphaJ = alphaLow + (alphaHi - alphaLow) / 2
-            phiCurrentAlphaJ =tr.lineSearchEvaluation(alphaJ, params)
+            phiCurrentAlphaJ =self.lineSearchEvaluation(alphaJ, params)
 
         if ((phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient) or (
                 phiCurrentAlphaJ >= phiCurrentAlphaLow)):

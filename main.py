@@ -10,14 +10,14 @@ def main(kind):
     
     algo = 'minibatch'
     batchSize = len(train_examples)
-    momentumAlpha = 0.8#.8
-    momentumBeta = 0#.8
+    momentumAlpha = 0.3#.8
+    momentumBeta = 0.3#.8
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
-    regularizationlambda = 0.0000 #0.001
+    regularizationlambda = 0 #0.001
 
-    learnRate = 0.01#4.5 #0.2
+    learnRate = 0.00001#4.5 #0.2
 
     tr_mse = []
     ts_mse = []
@@ -38,9 +38,9 @@ def main(kind):
                 batchSize=batchSize,
                 restart=1,
                 numHiddenLayers= 1,
-                numOfUnitsPerLayer = 4,
+                numOfUnitsPerLayer = 5,
                 numOfUnitPerOutput = 1,
-                weightsInitializer = 'default',
+                weightsInitializer = 'xavier',
                 task = 'classification',
                 kind = kind,
                 epochs=1000

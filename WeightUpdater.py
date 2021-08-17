@@ -57,7 +57,7 @@ class CompoundWeightUpdater(WeightUpdater):
                 "Invalid MOMENTUM"
                 
         if regularizationType == 'none':
-            self.Regularization = NullRegularization() # TODO: insert placeholder
+            self.Regularization = NullRegularization()
         elif regularizationType == 'l2':
             self.Regularization = L2Regularization()
         else:
@@ -117,7 +117,7 @@ class LBFGSWeightUpdater(WeightUpdater):
                 "Invalid MOMENTUM"
 
         if regularizationType == 'none':
-            self.Regularization = NullRegularization()  # TODO: insert placeholder
+            self.Regularization = NullRegularization()
         elif regularizationType == 'l2':
             self.Regularization = L2Regularization()
         else:
@@ -128,28 +128,28 @@ class LBFGSWeightUpdater(WeightUpdater):
 
         # Compute the new delta component
         delta_weights = delta
-        delta_bias = np.sum(delta, axis=0, keepdims=True)
+        delta_bias = np.sum(delta, axis=0)#, keepdims=True) # TODO: sistemare questo delta?
 
-        """        # Compute the momentum term
-                MomentumWeights, MomentumBias = self.Momentum.value()
-        
-                # Compute the regularization term
-                RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
-        
-                # Compute the overall delta term
-                delta_weights = \
-                    (learning_rate * delta_weights) + \
-                    (self.alpha * MomentumWeights) - \
-                    (self.lamb * RegularizationWeights)
-        
-                delta_bias = \
-                    (learning_rate * delta_bias) + \
-                    (self.alpha * MomentumBias) - \
-                    (self.lamb * RegularizationBias)"""
+        # Compute the momentum term
+        MomentumWeights, MomentumBias = self.Momentum.value()
+
+        # Compute the regularization term
+        RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
+
+        # Compute the overall delta term
+        delta_weights = \
+            (learning_rate * delta_weights) + \
+            (self.alpha * MomentumWeights) - \
+            (self.lamb * RegularizationWeights)
+
+        delta_bias = \
+            (learning_rate * delta_bias) + \
+            (self.alpha * MomentumBias) - \
+            (self.lamb * RegularizationBias)
 
         # Update the values
-        weights += learning_rate * delta_weights
-        bias += learning_rate * delta_bias
+        weights += delta_weights
+        bias += delta_bias
 
         # Update the momentum state
         self.Momentum.update(delta_weights, delta_bias)

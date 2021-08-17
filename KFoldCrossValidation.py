@@ -11,8 +11,9 @@ from NeuralNetwork import NeuralNetwork
 RandomState = 4200000
 
 class KFoldCrossValidation:
-    def __init__(self, k, dataset, labels):
+    def __init__(self, k, dataset, labels, name=""):
         self.k = k
+        self.name = name
         dataset, labels = shuffle(dataset, labels, random_state=RandomState)
         self.split(dataset, labels)
 
@@ -75,7 +76,7 @@ class KFoldCrossValidation:
         index = [(params, plot, x, minimumVariation) for x in range(self.k)]
 
         with Pool() as p:
-            values = list(tqdm(p.imap_unordered(self.worker, index), total = self.k, desc = description_of_pbar))
+            values = list(tqdm(p.imap_unordered(self.worker, index), total = self.k))#, desc = description_of_pbar))
 
         mean = np.mean(values)
         std = np.std(values)
@@ -85,6 +86,6 @@ class KFoldCrossValidation:
 
         params.update({'mean': mean, 'std':std, 'time elapsed':time_elapsed})
 
-        printToFile(params)
+        printToFile(params,"grid_search_results_{}.csv".format(self.name))
 
 

@@ -6,6 +6,7 @@ import random
 import math
 import copy
 
+
 RandomState = 4200000
 
 class TrainingAlgorithm:
@@ -35,9 +36,9 @@ class MiniBatchLearning(TrainingAlgorithm):
         self.epoch = 0
         while self.epoch < number_of_iterations:
             # learning rate decay as stated in the slide
-            alfa = self.epoch / 200
+            α = self.epoch / 200
             eta_t = eta_0 / 100
-            learning_rate = (1 - alfa) * eta_0 + alfa * eta_t
+            learning_rate = (1 - α) * eta_0 + α * eta_t
             if (self.epoch > 200):
                 learning_rate = eta_t
 
@@ -75,7 +76,7 @@ class MiniBatchLearning(TrainingAlgorithm):
                 # and update weights.
                 accumulated_delta = label
                 for layer in reversed(layers):
-                    gradient = layer.backward(accumulated_delta, rate_multiplier * learning_rate)
+                    gradient = layer.backward(accumulated_delta)
 
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
@@ -133,132 +134,70 @@ class LBFGSTraining(TrainingAlgorithm):
     def reset(self):
         self.epoch = 0
 
-
     def get_H_0(self, layer):
-
-        I = np.eye(layer.getGradientWeight().shape[0], layer.getGradientWeight().shape[1])
-
-        s, y = layer.past_curvatures[-1]
-
-        gamma = np.dot(s.T, y) / np.dot(y.T, y)
-
-        return np.dot(I, gamma )
-
-
-    def get_direction(self, layer):
-        q = layer.getGradientWeight()
-        q_old = q.copy()
-
-        if len(layer.past_curvatures) > 0:
-            # primo for (iterando dalla fine all'inizio delle curvature)
-            for s, y in reversed(layer.past_curvatures):
-                ro = 1 / (y * s)
-                alfa = ro * s * q
-                q = q - alfa * y
-
-            H_0 = self.get_H_0(layer)
-            r = H_0 * q
-
-            for s, y in layer.past_curvatures:
-                ro = 1 / (y * s)
-                alfa = ro * s * q
-
-                beta = ro * y * r
-                r = r + s * (alfa - beta)
-
-            return -r
-
-
-        else:
-            return -q
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    """def get_direction(self, layer):
-        
-        #This method returns the direction -r = - H_{k} ∇ f_{k}
-        
-        q = layer.getGradientWeight()
-        shape = q.shape
-
-        # TODO: Check secant equation conditions (s_{k}^T y_{k} > 0)
-        #  if np.dot(s.T, y) < 0: print("ERRORE")
-
         # Since we build the approximation of the hessian starting from the identity matrix,
         # following the equation H_{k}^{0} = γ_{k}*I, where γ_{k} = \frac{s^T_{k-1}y_{k-1}}{y^T_{k-1}y_{k-1}}
         # (eq. 7.20 from the Numerical Optimization book)
 
-        H = np.eye(shape[0], shape[1])
+        I = np.ones((layer.getGradientWeight().shape[0], layer.getGradientWeight().shape[1]))
 
-        # We'll skip the first gamma creation (we have not sufficient information from the past curvatures)
-        if len(layer.past_curvatures) > 0:
-            s = layer.past_curvatures[-1][0]
-            y = layer.past_curvatures[-1][1]
+        s, y = layer.past_curvatures[-1]
+        s = s.ravel()
+        y = y.ravel()
 
-            γ = np.dot(s.T,y) / np.dot(y.T,y)
+        γ = s.T @ y / y.T @ y
 
-            H = np.dot(H, γ) # γ_{k}*I
+        return γ * I
 
-            # Variables used to store ρ and α
-            list_ρ = []
-            list_α = []
+    def get_direction(self, layer):
+        # This method returns the direction -r = - H_{k} ∇ f_{k}
 
-            # Iterate through the latest past curvatures available (tail to head)
-            for past_curvature in reversed(layer.past_curvatures):
-                s = past_curvature[0]
-                y = past_curvature[1]
+        q = layer.getGradientWeight()
+        original_shape = copy.deepcopy(q.shape)
 
-                ρ = 1 / np.dot(y.T, s)
-                α = ρ * np.dot(s.T, q)
-                q = q - np.dot(α, y.T)
+        # Flattened vector
+        q = q.ravel()
 
-                # Save rho and alpha for further usages in the next loop
-                list_ρ.append(ρ)
-                list_α.append(α)
+        # We'll skip the first γ creation (we have not sufficient information from the past curvatures)
+        if len(layer.past_curvatures) > 1:
 
-            #q = np.reshape(q, shape)
-            r = H * q
+            # From latest curvature to the first
+            for s, y in reversed(layer.past_curvatures):
 
-            # Iterate througgetDih the latest past curvatures available (head to tail)
-            for idx, past_curvature in enumerate(layer.past_curvatures):
-                α = list_α[idx]
-                ρ = list_ρ[idx][0]
+                s = s.ravel()
+                y = y.ravel()
 
-                β = ρ * past_curvature[1] * r
+                ρ = 1 / (y.T @ s)
+                α = ρ * (s.T @ q)
+                q = q - α * y
 
-                parentesi = (α - β)
-                r += past_curvature[0] * parentesi
-        # End of 7.4
+            H_0 = self.get_H_0(layer)
+            r = H_0 * q.reshape(original_shape)
 
-            print("Primo caso")
-            return -r
+            # From first curvature to the last
+            for s, y in layer.past_curvatures:
+                s = s.ravel()
+                y = y.ravel()
+
+                ρ = 1 / (y.T @ s)
+                α = ρ * (s.T @ q)
+
+                β = ρ * (y.T @ r.ravel())
+                r = r.ravel() + s * (np.array(α) - np.array(β))
+
+            return r.reshape(original_shape)
+
         else:
-            print("Secondo caso ")
-            return -q"""
+            return q.reshape(original_shape)
 
 
-
-
+    # LINE SEARCH ALGORITHM FOR THE WOLFE CONDITIONS
+    '''
+    The parameter α_max is a user-supplied bound on the maximum step length allowed.
+    '''
     def lineSearch(self, currNetwork, c1=0.001, c2=0.9):
+        currNetwork = [copy.deepcopy(c) for c in currNetwork]
+
         alpha_0 = 0
         alpha_max = 0.99  # α_max > 0
         currentAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
@@ -292,13 +231,15 @@ class LBFGSTraining(TrainingAlgorithm):
             currentAlpha = random.uniform(previousAlpha, alpha_max)
         return currentAlpha
 
-    # Questo deve restituire l'errore
     def lineSearchEvaluate(self, stepSize, l):
         if stepSize == []:
             stepSize = 0
 
-        layers = [copy.deepcopy(ll) for ll in l] # copy the layers in order to avoid changing of their internal values
+        # copy the layers in order to avoid changing of their internal values when computing the error
+        # (by changing the weights)
+        layers = [copy.deepcopy(ll) for ll in l]
 
+        # Get the previously stored parameters
         training_set, labels, loss_function = self.p
 
         ################
@@ -311,12 +252,12 @@ class LBFGSTraining(TrainingAlgorithm):
         for layer in reversed(layers):
 
             # Compute gradient
-            gradient, old_gradient = layer.backward(accumulated_gradient, stepSize)
+            gradient = layer.backward(accumulated_gradient)
 
             # The following is needed in the following step of the backward propagation
             accumulated_gradient = gradient @ layer.weights.T
 
-            # TODO: sicuri?
+            # Get the previously computed direction
             direction = layer.direction
 
             # Update weights
@@ -337,11 +278,7 @@ class LBFGSTraining(TrainingAlgorithm):
 
 
 
-    # Set parameters for the line search
-    def set_params(self, p):
-        self.params = p
-
-    def train(self,  layers: List[LBFGSLayer], training_set, labels, learning_rate, loss_function, number_of_iterations, testFunction,
+    def train(self, layers, training_set, labels, learning_rate, loss_function, number_of_iterations, testFunction,
               minimumVariation, validation_set=np.array([]), validation_labels=np.array([]), test_set=np.array([]),
               test_labels=np.array([])):
         error_on_trainingset = []
@@ -349,79 +286,103 @@ class LBFGSTraining(TrainingAlgorithm):
         accuracy_mee = []
         accuracy_mee_tr = []
 
-        m = 3# TODO: parametrize this
+        m = 10
 
+        TRLen = training_set.shape[0]  # Size of the whole training set
+        batchRanges = range(self.batchSize, TRLen + 1, self.batchSize)
+
+        eta_0 = learning_rate
         self.epoch = 0
-        while True: #TODO: finire la convergenza
-            print("================")
+        self.grad = 1
+        while True:
 
+            # learning rate decay as stated in the slide
+            α = self.epoch / 200
+            eta_t = eta_0 / 100
+            learning_rate = (1 - α) * eta_0 + α * eta_t
+            if (self.epoch > 200):
+                learning_rate = eta_t
 
             training_set, labels = shuffle(training_set, labels, random_state=RandomState)
 
-            self.p = training_set, labels, loss_function
+            TRBatches = np.array_split(training_set, batchRanges)
+            labelBatches = np.array_split(labels, batchRanges)
 
-            ###############
-            # FORWARD PHASE
-            ###############
-            # We can propagate the output of the first layer.
-            # For each neuron of the layer, compute the output based on the
-            # output of the precedent layer
-            data = np.array(training_set)
-            for layer in layers:
-                data = layer.evaluate_input(data)
+            for sample, label in zip(TRBatches, labelBatches):
+                # store parameters for line search
+                self.p = sample, label, loss_function
 
-            ################
-            # BACKWARD PHASE
-            ################
-            # After we've finished the feed forward phase, we calculate the delta of each layer
-            # and update weights.
-            accumulated_gradient = labels
+                mb = sample.shape[0]  # Size of the minibatch
+                # Modified ETA based on mb
+                rate_multiplier = mb / TRLen
+                rate_multiplier = np.sqrt(rate_multiplier)
 
-            for layer in reversed(layers):
+                if rate_multiplier == 0:  # Empty batch iteration?
+                    continue
 
-                # Compute gradient
-                gradient, old_gradient = layer.backward(accumulated_gradient,  learning_rate)
+                ###############
+                # FORWARD PHASE
+                ###############
+                # We can propagate the output of the first layer.
+                # For each neuron of the layer, compute the output based on the
+                # output of the precedent layer
+                data = np.array(sample)
+                for layer in layers:
+                    data = layer.evaluate_input(data)
 
-                # The following is needed in the following step of the backward propagation
-                accumulated_gradient = gradient @ layer.weights.T
+                ################
+                # BACKWARD PHASE
+                ################
+                # After we've finished the feed forward phase, we calculate the delta of each layer
+                # and update weights.
+                accumulated_delta = label
+                for idx, layer in enumerate(reversed(layers)):
 
-                q_old = layer.getGradientWeight().copy()
-                layer.computeGradientWeight()
-                q = layer.getGradientWeight().copy()
+                    q_old = layer.getGradientWeight().copy()
+
+                    gradient = layer.backward(accumulated_delta)
+
+                    # The following is needed in the following step of the backward propagation
+                    accumulated_delta = gradient @ layer.weights.T
+                    if idx == 0:
+                        self.grad = 1
+
+                    layer.computeGradientWeight()
+                    q = layer.getGradientWeight()
+
+                    # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
+                    direction = -self.get_direction(layer)
+
+                    # and store it for further usages (i.e.: find alpha!)
+                    layer.direction = direction
+
+                    old_weights = layer.weights.copy()
+
+                    #learning_rate = self.lineSearchEvaluate(learning_rate, layers)
+                    #print("Learning rate: ", learning_rate)
+
+                    # Update weights
+                    layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
+                                                                             layer.bias,
+                                                                             layer.input,
+                                                                             -direction,
+                                                                             learning_rate)
 
 
-                y = (q-q_old)#/np.linalg.norm(q-q_old,axis=0)
-                #print("Y = ", y)
-                # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
-                direction = self.get_direction(layer)
-                layer.direction = direction
+                    # Create the list of the new curvature, taking into account that the first element is
+                    # s_{k}= w_{k+1} - w_{k} while the second one is the y_{k} = ∇f_{k+1} - ∇f_{k}
+                    s = layer.weights - old_weights
+                    y = q-q_old
 
-                old_weights = layer.weights.copy()
+                    if np.linalg.norm(s) > 1 and np.linalg.norm(y) > 1:
+                        layer.past_curvatures.append([s, y])
 
-                # this is the step size
-                learning_rate = 1#self.lineSearch(layers)
-                print("Learning rate (found with line search): ", learning_rate)
+                    # Remove the oldest element in order to keep the list with the desired size (m)
+                    if len(layer.past_curvatures) > m:
+                        layer.past_curvatures.pop(0)
 
-                # Update weights
-                layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
-                                                                         layer.bias,
-                                                                         layer.input,
-                                                                         direction,
-                                                                         learning_rate)
-
-                s = layer.weights - old_weights#/np.linalg.norm(layer.weights - old_weights,axis=0)
-                # Create the list of the new curvature, taking into account that the first element is
-                # s_{k}= w_{k+1} - w_{k} while the second one is the y_{k} = ∇f_{k+1} - ∇f_{k}
-                #if np.sum(np.linalg.norm(s,axis=0)) > 0.001 and np.sum(np.linalg.norm(y,axis=0)) > 0.001: #TODO: sicuri?
-
-                layer.past_curvatures.append([s, y])
-
-                # Remove the oldest element in order to keep the list with the desired size (m)
-                if len(layer.past_curvatures) > m:
-                    layer.past_curvatures.pop(0)
-
-                # Update k
-                layer.k += 1
+                    # Update k
+                    layer.k += 1
 
             data = training_set
             for layer in layers:
@@ -433,9 +394,6 @@ class LBFGSTraining(TrainingAlgorithm):
             data = validation_set
             for layer in layers:
                 data = layer.evaluate_input(data)
-
-            from sklearn.metrics import accuracy_score
-            #print("MEE/Accuracy on Train{}".format(accuracy_score(labels.tolist(), data.tolist())))
 
             # Save the error on the validation set for the  graph
             error_on_validationset.append(np.sum(loss_function.loss(validation_labels, data)) / len(validation_set))
@@ -450,12 +408,20 @@ class LBFGSTraining(TrainingAlgorithm):
             # Save the accuracy/mee on test set for the graph
             accuracy_mee_tr.append(testFunction(training_set, labels))
 
-            print("MEE/Accuracy on Train {},  alpha:".format(accuracy_mee_tr[-1], learning_rate))
-            #print("MEE/Accuracy Valid{}".format(accuracy_mee[-1]))
+            # print("MEE/Accuracy on Train{}".format(accuracy_mee_tr[-1]))
+            # print("MEE/Accuracy Valid{}".format(accuracy_mee[-1]))
 
             # Default stop condition
             StopCondition = True
             if (StopCondition):
+
+                if self.epoch > number_of_iterations:
+                    print("Number of max iter reached")
+                    break
+                if self.grad <= np.finfo(np.float).eps:
+                    print("Minimum gradient")
+                    break
+
                 if (self.epoch > 10):
                     diff = (error_on_trainingset[self.epoch] - error_on_trainingset[self.epoch - 1]) / \
                            error_on_trainingset[self.epoch]
@@ -466,7 +432,6 @@ class LBFGSTraining(TrainingAlgorithm):
 
             self.epoch += 1
         return error_on_trainingset, self.epoch, error_on_validationset, accuracy_mee, accuracy_mee_tr
-
 
     # Line-search conditions
     # PAG 33 del libro
@@ -626,45 +591,7 @@ class LBFGSTraining(TrainingAlgorithm):
             searchDirectionDotGradient += scal
         return searchDirectionDotGradient
 
-    # LINE SEARCH ALGORITHM FOR THE WOLFE CONDITIONS
-    '''
-    The parameter α_max is a user-supplied bound on the maximum step length allowed.
-    '''
 
-    def lineSearch(self, currNetwork, c1=0.001, c2=0.9):
-        alpha_0 = 0
-        alpha_max = 0.99  # α_max > 0
-        currentAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
-
-        initialSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
-
-        # Check descent direction
-        if (initialSearchDirectionDotGradient.any() > 0.0):  # TODO Rimuovere porcata
-            return False
-
-        phi0 = self.lineSearchEvaluate([], currNetwork)
-
-        previousAlpha = alpha_0
-
-        phiPreviousAlpha = 999999999  # TODO cambiare porcata
-        for i in range(100):
-            phiCurrentAlpha = self.lineSearchEvaluate(currentAlpha, currNetwork)
-            if ((phiCurrentAlpha > np.sum(phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient)) or (
-                    i > 1 and phiCurrentAlpha >= phiPreviousAlpha)):
-                return self.zoom(currNetwork, c1, c2, previousAlpha, currentAlpha, phi0,
-                            initialSearchDirectionDotGradient)
-
-            currentSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
-
-            if (abs(np.sum(currentSearchDirectionDotGradient)) <= np.sum(c2 * initialSearchDirectionDotGradient)):
-                return currentAlpha
-            if (currentSearchDirectionDotGradient >= 0):
-                return self.zoom(currNetwork, c1, c2, currentAlpha, previousAlpha, phi0,
-                            initialSearchDirectionDotGradient)
-            phiPreviousAlpha = phiCurrentAlpha
-            previousAlpha = currentAlpha
-            currentAlpha = random.uniform(previousAlpha, alpha_max)
-        return currentAlpha
 
     def zoom(self, currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialSearchDirectionDotGradient):
         i = 0

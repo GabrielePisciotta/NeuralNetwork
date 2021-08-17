@@ -9,15 +9,15 @@ def main(kind):
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
     
     algo = 'minibatch'
-    batchSize = len(train_examples)
-    momentumAlpha = 0#.8
-    momentumBeta = 0#.8
+    batchSize = 5
+    momentumAlpha = 0.8#.8
+    momentumBeta = 0.8#.8
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
-    regularizationlambda = 0 #0.001
+    regularizationlambda = 0# 0.0001 #0.001
 
-    learnRate = 0.00001#4.5 #0.2
+    learnRate = 4.5#4.5 #0.2
 
     tr_mse = []
     ts_mse = []
@@ -37,16 +37,15 @@ def main(kind):
                 algo=algo,
                 batchSize=batchSize,
                 restart=1,
-                numHiddenLayers= 1,
-                numOfUnitsPerLayer = 2,
+                numHiddenLayers=1,
+                numOfUnitsPerLayer = 4,
                 numOfUnitPerOutput = 1,
-                weightsInitializer = 'xavier',
+                weightsInitializer = 'default',
                 task = 'classification',
                 kind = kind,
-                epochs=1000
+                epochs=200
 
         )
-
 
         tr_err, ts_err = n.train(plot=True, minimumVariation = 0.01, validation_set=test_examples.values, validation_labels=test_labels.values)
         tr_mse.append(tr_err[-1])
@@ -107,7 +106,7 @@ def GridSearch_Batch_Monk1():
     print("Running Gridsearch + KFold")
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
 
-    kf = KFoldCrossValidation(3, train_examples.values, train_labels.values)
+    kf = KFoldCrossValidation(3, train_examples.values, train_labels.values, "Monk1")
     
     _ALGORITHM = ['minibatch']
     _BATCH_SIZE = ['max']
@@ -197,7 +196,7 @@ def GridSearch_Monk2():
     print("Running Gridsearch + KFold")
     train_examples, train_labels, test_examples, test_labels = ReadMonk(2)
 
-    kf = KFoldCrossValidation(3, train_examples.values, train_labels.values)
+    kf = KFoldCrossValidation(3, train_examples.values, train_labels.values, "Monk2")
     
     _ALGORITHM = ['minibatch']
     _BATCH_SIZE = [20]
@@ -242,7 +241,7 @@ def GridSearch_Monk3():
     print("Running Gridsearch + KFold")
     train_examples, train_labels, test_examples, test_labels = ReadMonk(3)
 
-    kf = KFoldCrossValidation(3, train_examples.values, train_labels.values)
+    kf = KFoldCrossValidation(3, train_examples.values, train_labels.values, "Monk3")
     
     _ALGORITHM = ['minibatch']
     _BATCH_SIZE = [20]
@@ -285,5 +284,6 @@ def GridSearch_Monk3():
         kf.validate(gs.get_grid()[number], message_for_pbar, 0.01)
 
 if __name__ == '__main__':
-    main(kind='L-BFGS')
+    #main(kind='L-BFGS')
     #main(kind='SGD')
+    GridSearch_MiniBatch_Monk1()

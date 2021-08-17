@@ -9,7 +9,7 @@ from Metric import Accuracy, MEE
 
 class NeuralNetwork:
 
-    def __init__(self, training_set, training_labels, losstype, regtype='none', reglambda=0, learning_rate=0.1, epochs=1000, algo='minibatch', batchSize=-1, momentumAlpha=0, momentumBeta=0, restart=1, numHiddenLayers=1, numOfUnitsPerLayer=1, numOfUnitPerOutput=-1, weightsInitializer='default', task='classification', activationFunction='sigmoid', kind='SGD'):
+    def __init__(self, training_set, training_labels, losstype, regtype='none', reglambda=0, learning_rate=0.1, epochs=1000, algo='minibatch', batchSize=-1, momentumAlpha=0, momentumBeta=0, restart=1, numHiddenLayers=1, numOfUnitsPerLayer=1, numOfUnitPerOutput=-1, weightsInitializer='default', task='classification', activationFunction='sigmoid', kind='L-BFGS'):
         assert momentumBeta >= 0 and momentumBeta <= 1, \
             "Invalid MOMENTUM BETA"
 

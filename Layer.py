@@ -44,7 +44,7 @@ class Layer:
     # @param value: since this function is called from NeuralNetwork class, we pass the label as `value` for the
     #               output layer, and we pass delta.dot(self.weights.T) for the hidden layer.
     # @return the gradient
-    def backward(self, value, learning_rate):
+    def backward(self, value):
         if self.type == 'output':
             loss_deriv_by_o = (-1) * self.loss_function.deriv(value, self.output)
             activ_deriv = self.activation_function.deriv(self.net)
@@ -146,12 +146,7 @@ class LBFGSLayer:
     # @param value: since this function is called from NeuralNetwork class, we pass the label as `value` for the
     #               output layer, and we pass delta.dot(self.weights.T) for the hidden layer.
     # @return the gradient
-    def backward(self, value, learning_rate):
-
-        # Store the previous gradient (if exists)
-        if hasattr(self, 'delta'):
-            self.old_delta = self.delta.copy()
-
+    def backward(self, value):
         if self.type == 'output':
             loss_deriv_by_o = (-1) * self.loss_function.deriv(value, self.output)
             activ_deriv = self.activation_function.deriv(self.net)
@@ -159,7 +154,7 @@ class LBFGSLayer:
         else:
             self.delta = value * self.activation_function.deriv(self.net)
 
-        return self.delta, self.old_delta
+        return self.delta
 
     def initializeWeights(self):
         if self.weightsInitializer == 'default':

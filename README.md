@@ -1,7 +1,9 @@
 # Neural Network (MLP)
 Neural network with fully connected layers, built from scratch.
 
-- Training algorithm: Stochastic Gradient Descent (SGD) with minibatch (as generalization for both online learning and batch learning), Momentum and moving average
+- Optimizers: Stochastic Gradient Descent (SGD), L-BFGS
+
+- Minibatch learning (as generalization for both online learning and batch learning), Momentum and moving average
 
 - Loss function: mean squared error (MSE)
 

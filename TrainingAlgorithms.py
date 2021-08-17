@@ -134,13 +134,70 @@ class LBFGSTraining(TrainingAlgorithm):
         self.epoch = 0
 
 
-    def get_direction(self, layer):
-        """
-        This method returns the direction -r = - H_{k} ∇ f_{k}
-        """
-        q = layer.getGradientWeight()
+    def get_H_0(self, layer):
 
-        q = q.copy()
+        I = np.eye(layer.getGradientWeight().shape[0], layer.getGradientWeight().shape[1])
+
+        s, y = layer.past_curvatures[-1]
+
+        gamma = np.dot(s.T, y) / np.dot(y.T, y)
+
+        return np.dot(I, gamma )
+
+
+    def get_direction(self, layer):
+        q = layer.getGradientWeight()
+        q_old = q.copy()
+
+        if len(layer.past_curvatures) > 0:
+            # primo for (iterando dalla fine all'inizio delle curvature)
+            for s, y in reversed(layer.past_curvatures):
+                ro = 1 / (y * s)
+                alfa = ro * s * q
+                q = q - alfa * y
+
+            H_0 = self.get_H_0(layer)
+            r = H_0 * q
+
+            for s, y in layer.past_curvatures:
+                ro = 1 / (y * s)
+                alfa = ro * s * q
+
+                beta = ro * y * r
+                r = r + s * (alfa - beta)
+
+            return -r
+
+
+        else:
+            return -q
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    """def get_direction(self, layer):
+        
+        #This method returns the direction -r = - H_{k} ∇ f_{k}
+        
+        q = layer.getGradientWeight()
         shape = q.shape
 
         # TODO: Check secant equation conditions (s_{k}^T y_{k} > 0)
@@ -149,6 +206,7 @@ class LBFGSTraining(TrainingAlgorithm):
         # Since we build the approximation of the hessian starting from the identity matrix,
         # following the equation H_{k}^{0} = γ_{k}*I, where γ_{k} = \frac{s^T_{k-1}y_{k-1}}{y^T_{k-1}y_{k-1}}
         # (eq. 7.20 from the Numerical Optimization book)
+
         H = np.eye(shape[0], shape[1])
 
         # We'll skip the first gamma creation (we have not sufficient information from the past curvatures)
@@ -156,43 +214,48 @@ class LBFGSTraining(TrainingAlgorithm):
             s = layer.past_curvatures[-1][0]
             y = layer.past_curvatures[-1][1]
 
-            #γ = (s * y)/(y * y) # s^T_{k-1}y_{k-1} / y^T_{k-1}y_{k-1}
             γ = np.dot(s.T,y) / np.dot(y.T,y)
-            #H = H * γ  # γ_{k}*I
+
             H = np.dot(H, γ) # γ_{k}*I
 
-        # Variables used to store ρ and α
-        list_ρ = []
-        list_α = []
+            # Variables used to store ρ and α
+            list_ρ = []
+            list_α = []
 
-        # Iterate through the latest past curvatures available (tail to head)
-        for past_curvature in layer.past_curvatures:
-            s = past_curvature[0]
-            y = past_curvature[1]
+            # Iterate through the latest past curvatures available (tail to head)
+            for past_curvature in reversed(layer.past_curvatures):
+                s = past_curvature[0]
+                y = past_curvature[1]
 
-            ρ = 1 / y * s
-            α = ρ * s * q
-            q -= α * y
+                ρ = 1 / np.dot(y.T, s)
+                α = ρ * np.dot(s.T, q)
+                q = q - np.dot(α, y.T)
 
-            # Save rho and alpha for further usages in the next loop
-            list_ρ.insert(0, ρ)
-            list_α.insert(0, α)
+                # Save rho and alpha for further usages in the next loop
+                list_ρ.append(ρ)
+                list_α.append(α)
 
-        q = np.reshape(q, shape)
-        r = H * q
+            #q = np.reshape(q, shape)
+            r = H * q
 
-        # Iterate through the latest past curvatures available (head to tail)
-        for idx, past_curvature in enumerate(reversed(layer.past_curvatures)):
-            α = list_α[idx]
-            ρ = list_ρ[idx][0]
+            # Iterate througgetDih the latest past curvatures available (head to tail)
+            for idx, past_curvature in enumerate(layer.past_curvatures):
+                α = list_α[idx]
+                ρ = list_ρ[idx][0]
 
-            β = ρ * past_curvature[1] * r
+                β = ρ * past_curvature[1] * r
 
-            parentesi = (α - β)
-            r += past_curvature[0] * parentesi
+                parentesi = (α - β)
+                r += past_curvature[0] * parentesi
         # End of 7.4
 
-        return -r
+            print("Primo caso")
+            return -r
+        else:
+            print("Secondo caso ")
+            return -q"""
+
+
 
 
     def lineSearch(self, currNetwork, c1=0.001, c2=0.9):
@@ -253,10 +316,8 @@ class LBFGSTraining(TrainingAlgorithm):
             # The following is needed in the following step of the backward propagation
             accumulated_gradient = gradient @ layer.weights.T
 
-            layer.computeGradientWeight()
-
             # TODO: sicuri?
-            direction = self.get_direction(layer)
+            direction = layer.direction
 
             # Update weights
             layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
@@ -290,9 +351,10 @@ class LBFGSTraining(TrainingAlgorithm):
 
         m = 3# TODO: parametrize this
 
-        eta_0 = learning_rate
         self.epoch = 0
-        while self.epoch < number_of_iterations:
+        while True: #TODO: finire la convergenza
+            print("================")
+
 
             training_set, labels = shuffle(training_set, labels, random_state=RandomState)
 
@@ -327,16 +389,19 @@ class LBFGSTraining(TrainingAlgorithm):
                 layer.computeGradientWeight()
                 q = layer.getGradientWeight().copy()
 
-                y = q-q_old
 
+                y = (q-q_old)#/np.linalg.norm(q-q_old,axis=0)
+                #print("Y = ", y)
                 # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
                 direction = self.get_direction(layer)
+                layer.direction = direction
 
                 old_weights = layer.weights.copy()
 
                 # this is the step size
-                learning_rate = self.lineSearch(layers)
-                print("Learning rate: ", learning_rate)
+                learning_rate = 1#self.lineSearch(layers)
+                print("Learning rate (found with line search): ", learning_rate)
+
                 # Update weights
                 layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                          layer.bias,
@@ -344,13 +409,12 @@ class LBFGSTraining(TrainingAlgorithm):
                                                                          direction,
                                                                          learning_rate)
 
-                s = layer.weights - old_weights
+                s = layer.weights - old_weights#/np.linalg.norm(layer.weights - old_weights,axis=0)
                 # Create the list of the new curvature, taking into account that the first element is
                 # s_{k}= w_{k+1} - w_{k} while the second one is the y_{k} = ∇f_{k+1} - ∇f_{k}
-                if layer.k in layer.past_curvatures:
-                    layer.past_curvatures[layer.k] = [s, y]
-                else:
-                    layer.past_curvatures.insert(layer.k,  [s, y])
+                #if np.sum(np.linalg.norm(s,axis=0)) > 0.001 and np.sum(np.linalg.norm(y,axis=0)) > 0.001: #TODO: sicuri?
+
+                layer.past_curvatures.append([s, y])
 
                 # Remove the oldest element in order to keep the list with the desired size (m)
                 if len(layer.past_curvatures) > m:

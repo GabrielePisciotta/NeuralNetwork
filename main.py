@@ -10,8 +10,8 @@ def main(kind):
     
     algo = 'minibatch'
     batchSize = len(train_examples)
-    momentumAlpha = 0.3#.8
-    momentumBeta = 0.3#.8
+    momentumAlpha = 0#.8
+    momentumBeta = 0#.8
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
@@ -38,7 +38,7 @@ def main(kind):
                 batchSize=batchSize,
                 restart=1,
                 numHiddenLayers= 1,
-                numOfUnitsPerLayer = 5,
+                numOfUnitsPerLayer = 2,
                 numOfUnitPerOutput = 1,
                 weightsInitializer = 'xavier',
                 task = 'classification',

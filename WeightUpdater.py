@@ -130,26 +130,26 @@ class LBFGSWeightUpdater(WeightUpdater):
         delta_weights = delta
         delta_bias = np.sum(delta, axis=0, keepdims=True)
 
-        # Compute the momentum term
-        MomentumWeights, MomentumBias = self.Momentum.value()
-
-        # Compute the regularization term
-        RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
-
-        # Compute the overall delta term
-        delta_weights = \
-            (learning_rate * delta_weights) + \
-            (self.alpha * MomentumWeights) - \
-            (self.lamb * RegularizationWeights)
-
-        delta_bias = \
-            (learning_rate * delta_bias) + \
-            (self.alpha * MomentumBias) - \
-            (self.lamb * RegularizationBias)
+        """        # Compute the momentum term
+                MomentumWeights, MomentumBias = self.Momentum.value()
+        
+                # Compute the regularization term
+                RegularizationWeights, RegularizationBias = self.Regularization.deriv(weights), 0
+        
+                # Compute the overall delta term
+                delta_weights = \
+                    (learning_rate * delta_weights) + \
+                    (self.alpha * MomentumWeights) - \
+                    (self.lamb * RegularizationWeights)
+        
+                delta_bias = \
+                    (learning_rate * delta_bias) + \
+                    (self.alpha * MomentumBias) - \
+                    (self.lamb * RegularizationBias)"""
 
         # Update the values
-        weights += delta_weights
-        bias += delta_bias
+        weights += learning_rate * delta_weights
+        bias += learning_rate * delta_bias
 
         # Update the momentum state
         self.Momentum.update(delta_weights, delta_bias)

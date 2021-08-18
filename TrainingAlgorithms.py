@@ -205,15 +205,15 @@ class LBFGSTraining(TrainingAlgorithm):
         initialSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
 
         # Check descent direction
-        if (np.linalg.norm(initialSearchDirectionDotGradient) > 0.0):
-            return 1
+        if (initialSearchDirectionDotGradient > 0.0):
+            return 0
 
-        phi0 = self.lineSearchEvaluate(0)
+        phi0 = self.lineSearchEvaluate(0, currNetwork)
         previousAlpha = alpha_0
 
-        phiPreviousAlpha = np.finfo.max
+        phiPreviousAlpha = np.finfo(np.float64).max
         for i in range(100):
-            phiCurrentAlpha = self.lineSearchEvaluate(currentAlpha)
+            phiCurrentAlpha = self.lineSearchEvaluate(currentAlpha, currNetwork)
             if ((phiCurrentAlpha > phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (
                     i > 1 and phiCurrentAlpha >= phiPreviousAlpha)):
                 return self.zoom(currNetwork, c1, c2, previousAlpha, currentAlpha, phi0,
@@ -295,7 +295,7 @@ class LBFGSTraining(TrainingAlgorithm):
         self.epoch = 0
         self.grad = 1
         while True:
-
+            print("Sto all'epoch ", self.epoch)
             # learning rate decay as stated in the slide
             α = self.epoch / 200
             eta_t = eta_0 / 100
@@ -591,8 +591,8 @@ class LBFGSTraining(TrainingAlgorithm):
     def computeDirectionDescent(self, currNetwork):
         searchDirectionDotGradient = 0
         for currentLayer in currNetwork:
-            primo = currentLayer.getGradientWeight()
-            secondo = currentLayer.GetDirection()
+            primo = currentLayer.getGradientWeight().ravel()
+            secondo = currentLayer.GetDirection().ravel()
             scal = np.dot(primo.T, secondo)
             searchDirectionDotGradient += scal
         return searchDirectionDotGradient
@@ -606,14 +606,14 @@ class LBFGSTraining(TrainingAlgorithm):
         # limit number of iteration to obtain a step length in a finite time
         while (i < 100):
             # Compute \phi(\alpha_{j})
-            phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ)
+            phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # Compute \phi(\alpha_{lo})
-            phiCurrentAlphaLow = self.lineSearchEvaluate(alphaLow)
+            phiCurrentAlphaLow = self.lineSearchEvaluate(alphaLow, currNetwork)
             currentSearchDirectionDotGradientAlphaLow = self.computeDirectionDescent(currNetwork)
 
             # Compute \alpha_{hi}
-            phiCurrentAlphaHi = self.lineSearchEvaluate(alphaHi)
+            phiCurrentAlphaHi = self.lineSearchEvaluate(alphaHi, currNetwork)
             currentSearchDirectionDotGradientAlphaHi = self.computeDirectionDescent(currNetwork)
 
             # quadraticInterpolation
@@ -623,7 +623,7 @@ class LBFGSTraining(TrainingAlgorithm):
                                                 currentSearchDirectionDotGradientAlphaLow,
                                                 alphaHi,
                                                 phiCurrentAlphaHi)
-                phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ)
+                phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # cubicInterpolation
             if (phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient):
@@ -634,12 +634,12 @@ class LBFGSTraining(TrainingAlgorithm):
 
                 if (alphaCubicInter > 0 and alphaCubicInter <= 1):
                     alphaJ = alphaCubicInter
-                    phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ)
+                    phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # Bisection interpolation if quadratic goes wrong
             if (alphaJ == 0):
                 alphaJ = alphaLow + (alphaHi - alphaLow) / 2
-                phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ)
+                phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             if ((phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient) or (
                     phiCurrentAlphaJ >= phiCurrentAlphaLow)):

@@ -200,42 +200,42 @@ class LBFGSTraining(TrainingAlgorithm):
 
         alpha_0 = 0
         alpha_max = 1  # α_max > 0
-        currentAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
+        currAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
 
-        initialSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
+        initialDirDotGrad = self.computeDirectionDescent(currNetwork)
 
         # Check descent direction
-        if (initialSearchDirectionDotGradient > 0.0):
-            return 0
+        #if (initialSearchDirectionDotGradient > 0.0):
+        #    return 0
 
         phi0 = self.lineSearchEvaluate(0, currNetwork)
-        previousAlpha = alpha_0
+        prevAlpha = alpha_0
 
-        phiPreviousAlpha = np.finfo(np.float64).max
+        phiPrevAlpha = np.finfo(np.float64).max
         for i in range(100):
-            print("\tnel for... ", i)
-            phiCurrentAlpha = self.lineSearchEvaluate(currentAlpha, currNetwork)
-            if (phiCurrentAlpha > phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (
-                    i > 1 and phiCurrentAlpha >= phiPreviousAlpha):
+            print("\tNel for... ", i)
+            phiCurrAlpha = self.lineSearchEvaluate(currAlpha, currNetwork)
+            if (phiCurrAlpha > phi0 + c1 * currAlpha * initialDirDotGrad) or (
+                    i > 1 and phiCurrAlpha >= phiPrevAlpha):
                 print("\t\tReturn zoom 1")
-                return self.zoom(currNetwork, c1, c2, previousAlpha, currentAlpha, phi0,
-                            initialSearchDirectionDotGradient)
+                return self.zoom(currNetwork, c1, c2, prevAlpha, currAlpha, phi0,
+                            initialDirDotGrad)
 
-            currentSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
+            currDirDotGrad = self.computeDirectionDescent(currNetwork)
 
-            if (abs(currentSearchDirectionDotGradient) <= c2 * initialSearchDirectionDotGradient):
-                print("\t\tReturn currentalpha")
-                return currentAlpha
-            if (currentSearchDirectionDotGradient >= 0):
+            if (abs(currDirDotGrad) <= - c2 * initialDirDotGrad):
+                print("\t\tReturn currAlpha")
+                return currAlpha
+            if (currDirDotGrad >= 0):
                 print("\t\tReturn zoom 2")
-                return self.zoom(currNetwork, c1, c2, currentAlpha, previousAlpha, phi0,
-                            initialSearchDirectionDotGradient)
-            phiPreviousAlpha = phiCurrentAlpha
-            previousAlpha = currentAlpha
-            currentAlpha = random.uniform(previousAlpha, alpha_max)
+                return self.zoom(currNetwork, c1, c2, currAlpha, prevAlpha, phi0,
+                            initialDirDotGrad)
+            phiPrevAlpha = phiCurrAlpha
+            prevAlpha = currAlpha
+            currAlpha = random.uniform(prevAlpha, alpha_max)
 
         print("\t\tReturn finale random")
-        return currentAlpha
+        return currAlpha
 
     def lineSearchEvaluate(self, stepSize, l):
         if stepSize == []:
@@ -591,67 +591,66 @@ class LBFGSTraining(TrainingAlgorithm):
     def computeDirectionDescent(self, currNetwork):
         searchDirectionDotGradient = 0
         for currentLayer in currNetwork:
-            primo = currentLayer.getGradientWeight().ravel()
-            secondo = currentLayer.GetDirection().ravel()
-            scal = np.dot(primo.T, secondo)
-            searchDirectionDotGradient += scal
+            grad = currentLayer.getGradientWeight().ravel()
+            dir = currentLayer.GetDirection().ravel()
+            searchDirectionDotGradient += np.dot(dir.T, grad)
         return searchDirectionDotGradient
 
 
 
-    def zoom(self, currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialSearchDirectionDotGradient):
+    def zoom(self, currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialDirDotGrad):
         i = 0
         alphaJ = 1
 
         # limit number of iteration to obtain a step length in a finite time
         while (i < 100):
             # Compute \phi(\alpha_{j})
-            phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+            phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # Compute \phi(\alpha_{lo})
-            phiCurrentAlphaLow = self.lineSearchEvaluate(alphaLow, currNetwork)
-            currentSearchDirectionDotGradientAlphaLow = self.computeDirectionDescent(currNetwork)
+            phiCurrAlphaLow = self.lineSearchEvaluate(alphaLow, currNetwork)
+            currDirDotGradAlphaLow = self.computeDirectionDescent(currNetwork)
 
             # Compute \alpha_{hi}
-            phiCurrentAlphaHi = self.lineSearchEvaluate(alphaHi, currNetwork)
-            currentSearchDirectionDotGradientAlphaHi = self.computeDirectionDescent(currNetwork)
+            phiCurrAlphaHi = self.lineSearchEvaluate(alphaHi, currNetwork)
+            currDirDotGradAlphaHi = self.computeDirectionDescent(currNetwork)
 
             # quadraticInterpolation
-            if (phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient):
+            if (phiCurrAlphaJ > phi0 + c1 * alphaJ * initialDirDotGrad):
                 alphaJ = self.quadraticApproximation(alphaLow,
-                                                phiCurrentAlphaLow,
-                                                currentSearchDirectionDotGradientAlphaLow,
+                                                phiCurrAlphaLow,
+                                                currDirDotGradAlphaLow,
                                                 alphaHi,
-                                                phiCurrentAlphaHi)
-                phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+                                                phiCurrAlphaHi)
+                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # cubicInterpolation
-            if (phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient):
-                alphaCubicInter = self.cubicApproximation(alphaLow, phiCurrentAlphaLow,
-                                                     currentSearchDirectionDotGradientAlphaLow, alphaHi,
-                                                     phiCurrentAlphaHi,
-                                                     currentSearchDirectionDotGradientAlphaHi)
+            if (phiCurrAlphaJ > phi0 + c1 * alphaJ * initialDirDotGrad):
+                alphaCubicInter = self.cubicApproximation(alphaLow, phiCurrAlphaLow,
+                                                     currDirDotGradAlphaLow, alphaHi,
+                                                     phiCurrAlphaHi,
+                                                     currDirDotGradAlphaHi)
 
                 if (alphaCubicInter > 0 and alphaCubicInter <= 1):
                     alphaJ = alphaCubicInter
-                    phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+                    phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # Bisection interpolation if quadratic goes wrong
             if (alphaJ == 0):
                 alphaJ = alphaLow + (alphaHi - alphaLow) / 2
-                phiCurrentAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
-            if ((phiCurrentAlphaJ > phi0 + c1 * alphaJ * initialSearchDirectionDotGradient) or (
-                    phiCurrentAlphaJ >= phiCurrentAlphaLow)):
+            if ((phiCurrAlphaJ > phi0 + c1 * alphaJ * initialDirDotGrad) or (
+                    phiCurrAlphaJ >= phiCurrAlphaLow)):
                 alphaHi = alphaJ
             else:
                 # Compute \phi'(\alpha_{j})
-                currentSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
+                currDirDotGrad = self.computeDirectionDescent(currNetwork)
 
-                if (abs(currentSearchDirectionDotGradient) <= -c2 * initialSearchDirectionDotGradient):
+                if (abs(currDirDotGrad) <= -c2 * initialDirDotGrad):
                     return alphaJ
 
-                if (currentSearchDirectionDotGradient * (alphaHi - alphaLow) >= 0):
+                if (currDirDotGrad * (alphaHi - alphaLow) >= 0):
                     alphaHi = alphaLow
                 alphaLow = alphaJ
 

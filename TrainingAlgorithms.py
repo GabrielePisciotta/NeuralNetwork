@@ -338,7 +338,7 @@ class LBFGSTraining(TrainingAlgorithm):
                 accumulated_delta = label
                 for idx, layer in enumerate(reversed(layers)):
 
-                    # Save old gradient@weights.T
+                    # Save old input.T@gradient
                     q_old = layer.getGradientWeight().copy()
 
                     # Get the backward resulting gradient
@@ -350,7 +350,7 @@ class LBFGSTraining(TrainingAlgorithm):
                     if idx == 0:
                         self.grad = 1
 
-                    # Compute the new gradient@weights.T
+                    # Compute the new input.T@gradient
                     layer.computeGradientWeight()
                     q = layer.getGradientWeight()
 
@@ -362,8 +362,9 @@ class LBFGSTraining(TrainingAlgorithm):
                     # Save the old weights
                     old_weights = layer.weights.copy()
 
+
                     # Find the proper step / learning rate (line search)
-                    learning_rate = self.lineSearchEvaluate(learning_rate, layers)
+                    learning_rate = self.lineSearchEvaluate(0, layers)
                     #print("Learning rate: ", learning_rate)
 
                     # Update weights

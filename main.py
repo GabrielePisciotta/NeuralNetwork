@@ -285,5 +285,5 @@ def GridSearch_Monk3():
 
 if __name__ == '__main__':
     main(kind='L-BFGS')
-    #main(kind='SGD')
+    main(kind='SGD')
     #GridSearch_MiniBatch_Monk1()

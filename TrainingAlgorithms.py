@@ -205,8 +205,8 @@ class LBFGSTraining(TrainingAlgorithm):
         initialSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
 
         # Check descent direction
-        if (initialSearchDirectionDotGradient > 0.0):
-            return False
+        if (np.linalg.norm(initialSearchDirectionDotGradient) > 0.0):
+            return 1
 
         phi0 = self.lineSearchEvaluate(0)
         previousAlpha = alpha_0
@@ -338,7 +338,7 @@ class LBFGSTraining(TrainingAlgorithm):
                 accumulated_delta = label
                 for idx, layer in enumerate(reversed(layers)):
 
-                    # Save old input.T@gradient
+                    # Save old gradient@weights.T
                     q_old = layer.getGradientWeight().copy()
 
                     # Get the backward resulting gradient
@@ -362,9 +362,9 @@ class LBFGSTraining(TrainingAlgorithm):
                     # Save the old weights
                     old_weights = layer.weights.copy()
 
-
                     # Find the proper step / learning rate (line search)
-                    learning_rate = self.lineSearchEvaluate(0, layers)
+                    learning_rate = self.lineSearch(layers)
+
                     #print("Learning rate: ", learning_rate)
 
                     # Update weights

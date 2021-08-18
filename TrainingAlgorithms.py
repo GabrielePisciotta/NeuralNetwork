@@ -581,9 +581,7 @@ class LBFGSTraining(TrainingAlgorithm):
                 alphaLow - alphaHi)
         d2 = (1 if np.signbit(alphaHi - alphaLow) else -1) * math.sqrt(
             d1 ** 2 - searchDirectionDotGradientAlphaLow * searchDirectionDotGradientAlphaHi)
-        return alphaHi - (alphaHi - alphaLow) * ((
-                                                         searchDirectionDotGradientAlphaHi + d2 - d1) / (searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2))
-
+        return alphaHi - (alphaHi - alphaLow) * ((searchDirectionDotGradientAlphaHi + d2 - d1) / (searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2))
     '''
     Compute dot product between the gradients store inside the layers \phi'
     '''

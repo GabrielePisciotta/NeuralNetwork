@@ -284,6 +284,6 @@ def GridSearch_Monk3():
         kf.validate(gs.get_grid()[number], message_for_pbar, 0.01)
 
 if __name__ == '__main__':
-    #main(kind='L-BFGS')
+    main(kind='L-BFGS')
     #main(kind='SGD')
-    GridSearch_MiniBatch_Monk1()
+    #GridSearch_MiniBatch_Monk1()

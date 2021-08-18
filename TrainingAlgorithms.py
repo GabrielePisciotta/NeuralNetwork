@@ -338,27 +338,32 @@ class LBFGSTraining(TrainingAlgorithm):
                 accumulated_delta = label
                 for idx, layer in enumerate(reversed(layers)):
 
+                    # Save old gradient@weights.T
                     q_old = layer.getGradientWeight().copy()
 
+                    # Get the backward resulting gradient
                     gradient = layer.backward(accumulated_delta)
 
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
+
                     if idx == 0:
                         self.grad = 1
 
+                    # Compute the new gradient@weights.T
                     layer.computeGradientWeight()
                     q = layer.getGradientWeight()
 
                     # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
-                    direction = -self.get_direction(layer)
-
                     # and store it for further usages (i.e.: find alpha!)
+                    direction = -self.get_direction(layer)
                     layer.direction = direction
 
+                    # Save the old weights
                     old_weights = layer.weights.copy()
 
-                    #learning_rate = self.lineSearchEvaluate(learning_rate, layers)
+                    # Find the proper step / learning rate (line search)
+                    learning_rate = self.lineSearchEvaluate(learning_rate, layers)
                     #print("Learning rate: ", learning_rate)
 
                     # Update weights
@@ -368,12 +373,12 @@ class LBFGSTraining(TrainingAlgorithm):
                                                                              -direction,
                                                                              learning_rate)
 
-
                     # Create the list of the new curvature, taking into account that the first element is
                     # s_{k}= w_{k+1} - w_{k} while the second one is the y_{k} = ∇f_{k+1} - ∇f_{k}
                     s = layer.weights - old_weights
                     y = q-q_old
 
+                    # If the norm of both s and y is greater enough, store it
                     if np.linalg.norm(s) > 1 and np.linalg.norm(y) > 1:
                         layer.past_curvatures.append([s, y])
 

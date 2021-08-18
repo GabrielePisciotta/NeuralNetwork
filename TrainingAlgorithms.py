@@ -196,10 +196,10 @@ class LBFGSTraining(TrainingAlgorithm):
     The parameter α_max is a user-supplied bound on the maximum step length allowed.
     '''
     def lineSearch(self, currNetwork, c1=0.001, c2=0.9):
-        currNetwork = [copy.deepcopy(c) for c in currNetwork]
+        #currNetwork = [copy.deepcopy(c) for c in currNetwork]
 
         alpha_0 = 0
-        alpha_max = 0.99  # α_max > 0
+        alpha_max = 1  # α_max > 0
         currentAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
 
         initialSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
@@ -213,22 +213,28 @@ class LBFGSTraining(TrainingAlgorithm):
 
         phiPreviousAlpha = np.finfo(np.float64).max
         for i in range(100):
+            print("\tnel for... ", i)
             phiCurrentAlpha = self.lineSearchEvaluate(currentAlpha, currNetwork)
-            if ((phiCurrentAlpha > phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (
-                    i > 1 and phiCurrentAlpha >= phiPreviousAlpha)):
+            if (phiCurrentAlpha > phi0 + c1 * currentAlpha * initialSearchDirectionDotGradient) or (
+                    i > 1 and phiCurrentAlpha >= phiPreviousAlpha):
+                print("\t\tReturn zoom 1")
                 return self.zoom(currNetwork, c1, c2, previousAlpha, currentAlpha, phi0,
                             initialSearchDirectionDotGradient)
 
             currentSearchDirectionDotGradient = self.computeDirectionDescent(currNetwork)
 
             if (abs(currentSearchDirectionDotGradient) <= c2 * initialSearchDirectionDotGradient):
+                print("\t\tReturn currentalpha")
                 return currentAlpha
             if (currentSearchDirectionDotGradient >= 0):
+                print("\t\tReturn zoom 2")
                 return self.zoom(currNetwork, c1, c2, currentAlpha, previousAlpha, phi0,
                             initialSearchDirectionDotGradient)
             phiPreviousAlpha = phiCurrentAlpha
             previousAlpha = currentAlpha
             currentAlpha = random.uniform(previousAlpha, alpha_max)
+
+        print("\t\tReturn finale random")
         return currentAlpha
 
     def lineSearchEvaluate(self, stepSize, l):
@@ -296,12 +302,7 @@ class LBFGSTraining(TrainingAlgorithm):
         self.grad = 1
         while True:
             print("Sto all'epoch ", self.epoch)
-            # learning rate decay as stated in the slide
-            α = self.epoch / 200
-            eta_t = eta_0 / 100
-            learning_rate = (1 - α) * eta_0 + α * eta_t
-            if (self.epoch > 200):
-                learning_rate = eta_t
+
 
             training_set, labels = shuffle(training_set, labels, random_state=RandomState)
 
@@ -364,8 +365,7 @@ class LBFGSTraining(TrainingAlgorithm):
 
                     # Find the proper step / learning rate (line search)
                     learning_rate = self.lineSearch(layers)
-
-                    #print("Learning rate: ", learning_rate)
+                    print("\t\t\tLearning rate: ", learning_rate)
 
                     # Update weights
                     layer.weights, layer.bias = layer.weights_updater.update(layer.weights,

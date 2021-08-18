@@ -43,7 +43,7 @@ def main(kind):
                 weightsInitializer = 'default',
                 task = 'classification',
                 kind = kind,
-                epochs=200
+                epochs=20
 
         )
 

@@ -195,8 +195,8 @@ class LBFGSTraining(TrainingAlgorithm):
     '''
     The parameter α_max is a user-supplied bound on the maximum step length allowed.
     '''
-    def lineSearch(self, currNetwork, c1=0.001, c2=0.9):
-        #currNetwork = [copy.deepcopy(c) for c in currNetwork]
+    def lineSearch(self, currNetworkk, c1=0.001, c2=0.9):
+        currNetwork = [copy.deepcopy(c) for c in currNetworkk]
 
         alpha_0 = 0
         alpha_max = 1  # α_max > 0
@@ -246,7 +246,7 @@ class LBFGSTraining(TrainingAlgorithm):
         layers = [copy.deepcopy(ll) for ll in l]
 
         # Get the previously stored parameters
-        training_set, labels, loss_function = self.p
+        training_set, labels, loss_function, TRLen = self.p
 
         ################
         # BACKWARD PHASE
@@ -280,7 +280,7 @@ class LBFGSTraining(TrainingAlgorithm):
             data = layer.evaluate_input(data)
 
         # Save the error on the training set for the graph
-        return np.sum(loss_function.loss(labels, data)) / len(training_set)
+        return np.linalg.norm(loss_function.loss(labels, data)) * TRLen
 
 
 
@@ -311,7 +311,7 @@ class LBFGSTraining(TrainingAlgorithm):
 
             for sample, label in zip(TRBatches, labelBatches):
                 # store parameters for line search
-                self.p = sample, label, loss_function
+                self.p = sample, label, loss_function, TRLen
 
                 mb = sample.shape[0]  # Size of the minibatch
                 # Modified ETA based on mb
@@ -364,7 +364,7 @@ class LBFGSTraining(TrainingAlgorithm):
                     old_weights = layer.weights.copy()
 
                     # Find the proper step / learning rate (line search)
-                    learning_rate = self.lineSearch(layers)
+                    learning_rate = self.lineSearch(layers)#*np.sqrt(mb/TRLen)
                     print("\t\t\tLearning rate: ", learning_rate)
 
                     # Update weights
@@ -582,7 +582,7 @@ class LBFGSTraining(TrainingAlgorithm):
         d2 = (1 if np.signbit(alphaHi - alphaLow) else -1) * math.sqrt(
             d1 ** 2 - searchDirectionDotGradientAlphaLow * searchDirectionDotGradientAlphaHi)
         return alphaHi - (alphaHi - alphaLow) * ((
-                                                         searchDirectionDotGradientAlphaHi + d2 - d1) / searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2)
+                                                         searchDirectionDotGradientAlphaHi + d2 - d1) / (searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2))
 
     '''
     Compute dot product between the gradients store inside the layers \phi'
@@ -598,7 +598,8 @@ class LBFGSTraining(TrainingAlgorithm):
 
 
 
-    def zoom(self, currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialDirDotGrad):
+    def zoom(self, currNetworkk, c1, c2, alphaLow, alphaHi, phi0, initialDirDotGrad):
+        currNetwork = [copy.deepcopy(c) for c in currNetworkk]
         i = 0
         alphaJ = 1
 
@@ -616,7 +617,7 @@ class LBFGSTraining(TrainingAlgorithm):
             currDirDotGradAlphaHi = self.computeDirectionDescent(currNetwork)
 
             # quadraticInterpolation
-            if (phiCurrAlphaJ > phi0 + c1 * alphaJ * initialDirDotGrad):
+            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
                 alphaJ = self.quadraticApproximation(alphaLow,
                                                 phiCurrAlphaLow,
                                                 currDirDotGradAlphaLow,
@@ -625,32 +626,31 @@ class LBFGSTraining(TrainingAlgorithm):
                 phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # cubicInterpolation
-            if (phiCurrAlphaJ > phi0 + c1 * alphaJ * initialDirDotGrad):
+            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
                 alphaCubicInter = self.cubicApproximation(alphaLow, phiCurrAlphaLow,
                                                      currDirDotGradAlphaLow, alphaHi,
                                                      phiCurrAlphaHi,
                                                      currDirDotGradAlphaHi)
 
-                if (alphaCubicInter > 0 and alphaCubicInter <= 1):
+                if alphaCubicInter > 0 and alphaCubicInter <= 1:
                     alphaJ = alphaCubicInter
                     phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
             # Bisection interpolation if quadratic goes wrong
-            if (alphaJ == 0):
+            if alphaJ == 0:
                 alphaJ = alphaLow + (alphaHi - alphaLow) / 2
                 phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
 
-            if ((phiCurrAlphaJ > phi0 + c1 * alphaJ * initialDirDotGrad) or (
-                    phiCurrAlphaJ >= phiCurrAlphaLow)):
+            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad) or phiCurrAlphaJ >= phiCurrAlphaLow:
                 alphaHi = alphaJ
             else:
                 # Compute \phi'(\alpha_{j})
                 currDirDotGrad = self.computeDirectionDescent(currNetwork)
 
-                if (abs(currDirDotGrad) <= -c2 * initialDirDotGrad):
+                if abs(currDirDotGrad) <= (-c2 * initialDirDotGrad):
                     return alphaJ
 
-                if (currDirDotGrad * (alphaHi - alphaLow) >= 0):
+                if currDirDotGrad * (alphaHi - alphaLow) >= 0:
                     alphaHi = alphaLow
                 alphaLow = alphaJ
 

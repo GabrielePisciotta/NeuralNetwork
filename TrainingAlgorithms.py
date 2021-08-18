@@ -270,7 +270,7 @@ class LBFGSTraining(TrainingAlgorithm):
             layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                      layer.bias,
                                                                      layer.input,
-                                                                     direction,
+                                                                     -direction,
                                                                      stepSize,
                                                                      )
 

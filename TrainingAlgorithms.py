@@ -204,10 +204,6 @@ class LBFGSTraining(TrainingAlgorithm):
 
         initialDirDotGrad = self.computeDirectionDescent(currNetwork)
 
-        # Check descent direction
-        #if (initialSearchDirectionDotGradient > 0.0):
-        #    return 0
-
         phi0 = self.lineSearchEvaluate(0, currNetwork)
         prevAlpha = alpha_0
 
@@ -438,50 +434,26 @@ class LBFGSTraining(TrainingAlgorithm):
 
             self.epoch += 1
         return error_on_trainingset, self.epoch, error_on_validationset, accuracy_mee, accuracy_mee_tr
-
-    # Line-search conditions (page 33 from the CM book)
-    '''
-        g: ∇fkT the initial gradient direction for the given initial value -> g(xk)
-        xk: initial value
-        alpha: step length 
-        pk: descent direction
-        c1: value between (0,1)
-        c2: value between (c1,1)
-    '''
     
-    #TODO FINIRE WOLFE CONDITION (sistemare nomi variabili)
+    '''
+    # Line-search conditions (page 33 from the CM book)
     # WOLFE CONDITIONS
-    '''
-        f(xk + αk pk ) ≤ f(xk) + c1 αk ∇fkT pk       (3.6a)
-        ∇f(xk + αk pk)T pk ≥ c2 ∇fkT pk              (3.6b)
-    '''
-
     # 1. WOLFE CONDITION: Armijo condition, also called "sufficient decrease condition"
-    '''
-        f (xk + αpk ) ≤ f(xk) + c1 α ∇fkT pk  (3.4)
-    '''
     def wolfe_armijo_condition(self, f, g, xk, alpha, pk):
         c1 = 1e-4
         return f(xk + alpha * pk) <= f(xk) + c1 * alpha * np.dot(g(xk), pk)
 
     # 2. WOLFE CONDITION: Curvature condition
-    '''
-        ∇f(xk + αk pk)T pk ≥ c2 ∇fkT pk   (3.5)
-    '''
     def wolfe_curvature_condition(self, f, g, xk, alpha, pk):
         c1 = 1e-4
         return f(xk + alpha * pk) <= f(xk) + c1 * alpha * np.dot(g(xk), pk)
 
     # STRONG WOLFE CONDITION
-    '''
-        f(xk + αk pk) ≤ f (xk) + c1 αk ∇fkT pk    (3.7a)
-        |∇f(xk + αk pk)T pk| ≤ c2 |∇fkT pk|       (3.7b)
-    '''
     def strong_wolfe(self, f, g, xk, alpha, pk, c2):
         return self.wolfe_armijo_condition(f, g, xk, alpha, pk) and abs(np.dot(g(xk + alpha * pk), pk)) <= c2 * abs(
             np.dot(g(xk), pk))
-
-    #TODO FINIRE secant equation method
+    '''
+    #TODO capire dove chiamare il metodo
     # SECANT EQUATION
     '''
        s_{k}^T y_{k}>0      (6.7)
@@ -492,23 +464,9 @@ class LBFGSTraining(TrainingAlgorithm):
             y = y.ravel()
         if(s.T @ y <= 0):
             print("SECANT EQUATION NON SODDISFATTE")
-            return 0
+            return False
         else:
-            return 1        
-    
-    # BACKTRACKING - line search (algo 3.1) <---- Not used (line search is better)
-    '''
-    def backtracking(self, f, g, xk, pk):
-        alpha_s = 1
-        rho = random.randrange(0, 1, 0.01)
-        c = random.randrange(0, 1, 0.0001)
-        alpha = alpha_s
-
-        while (f(xk + alpha * pk) <= f(xk) + c * alpha * np.dot(g(xk), pk)):
-            alpha = alpha * rho
-
-        return alpha
-    '''
+            return True        
 
     # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
     def quadraticApproximation(self, alphaLow, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):

@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from sklearn.utils import shuffle
 from Layer import *
@@ -299,7 +301,6 @@ class LBFGSTraining(TrainingAlgorithm):
         while True:
             print("Sto all'epoch ", self.epoch)
 
-
             training_set, labels = shuffle(training_set, labels, random_state=RandomState)
 
             TRBatches = np.array_split(training_set, batchRanges)
@@ -344,8 +345,6 @@ class LBFGSTraining(TrainingAlgorithm):
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
 
-                    if idx == 0:
-                        self.grad = 1
 
                     # Compute the new input.T@gradient
                     layer.computeGradientWeight()
@@ -375,8 +374,12 @@ class LBFGSTraining(TrainingAlgorithm):
                     s = layer.weights - old_weights
                     y = q-q_old
 
+                    # Secant equation
+                    if not self.secantEquation(layer):
+                        sys.exit()
+
                     # If the norm of both s and y is greater enough, store it
-                    if np.linalg.norm(s) > 1 and np.linalg.norm(y) > 1:
+                    if np.linalg.norm(s) > 1 and np.linalg.norm(y) > np.finfo(np.float64).eps:
                         layer.past_curvatures.append([s, y])
 
                     # Remove the oldest element in order to keep the list with the desired size (m)
@@ -391,7 +394,8 @@ class LBFGSTraining(TrainingAlgorithm):
                 data = layer.evaluate_input(data)
 
             # Save the error on the training set for the graph
-            error_on_trainingset.append(np.sum(loss_function.loss(labels, data)) / len(training_set))
+            err_tr = np.sum(loss_function.loss(labels, data)) / len(training_set)
+            error_on_trainingset.append(err_tr)
 
             data = validation_set
             for layer in layers:
@@ -417,10 +421,10 @@ class LBFGSTraining(TrainingAlgorithm):
             StopCondition = True
             if (StopCondition):
 
-                if self.epoch > number_of_iterations:
+                if self.epoch >= number_of_iterations:
                     print("Number of max iter reached")
                     break
-                if self.grad <= np.finfo(np.float).eps:
+                if err_tr <= np.finfo(np.float).eps:
                     print("Minimum gradient")
                     break
 
@@ -459,16 +463,17 @@ class LBFGSTraining(TrainingAlgorithm):
        s_{k}^T y_{k}>0      (6.7)
     '''
     def secantEquation(self, layer):
-        for s, y in layer.past_curvatures:
-            s = s.ravel()
-            y = y.ravel()
-        if(s.T @ y <= 0):
-            print("SECANT EQUATION NON SODDISFATTE")
-            return False
+        if len(layer.past_curvatures) > 0:
+            s, y = layer.past_curvatures[-1]
+            if(np.dot(s.ravel().T, y.ravel()) <= 0):
+                print("[ERROR] Secant equation not satisfied")
+                return False
+            else:
+                return True
         else:
-            return True        
+            return True
 
-    # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
+            # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
     def quadraticApproximation(self, alphaLow, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):
         return -(searchDirectionDotGradientAlphaLow * alphaHi ** 2) / (
                 2 * (phiAlphaHi - phiAlphaLo - searchDirectionDotGradientAlphaLow * alphaHi))

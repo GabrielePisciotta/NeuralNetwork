@@ -202,7 +202,7 @@ class LBFGSTraining(TrainingAlgorithm):
         accuracy_mee = []
         accuracy_mee_tr = []
 
-        m = 10
+        m = 7
 
         TRLen = training_set.shape[0]  # Size of the whole training set
         batchRanges = range(self.batchSize, TRLen + 1, self.batchSize)
@@ -211,7 +211,6 @@ class LBFGSTraining(TrainingAlgorithm):
         self.epoch = 0
         self.grad = 1
         while True:
-            print("Sto all'epoch ", self.epoch)
 
             training_set, labels = shuffle(training_set, labels, random_state=RandomState)
 
@@ -240,14 +239,16 @@ class LBFGSTraining(TrainingAlgorithm):
                 for layer in layers:
                     data = layer.evaluate_input(data)
 
+
                 ################
                 # BACKWARD PHASE
                 ################
                 # After we've finished the feed forward phase, we calculate the delta of each layer
                 # and update weights.
-                accumulated_delta = label
-                for idx, layer in enumerate(reversed(layers)):
 
+                # Compute directions
+                accumulated_delta = label
+                for layer in reversed(layers):
                     # Save old gradient@weights.T
                     q_old = layer.getGradientWeight().copy()
 
@@ -256,7 +257,6 @@ class LBFGSTraining(TrainingAlgorithm):
 
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
-
 
                     # Compute the new input.T@gradient
                     layer.computeGradientWeight()
@@ -267,33 +267,38 @@ class LBFGSTraining(TrainingAlgorithm):
                     direction = -self.get_direction(layer)
                     layer.direction = direction
 
-                    # Save the old weights
-                    old_weights = layer.weights.copy()
-
-                    # Find the proper step / learning rate (line search)
-                    #learning_rate = self.lineSearch(layers)#*np.sqrt(mb/TRLen)
-                    #print("\t\t\tLearning rate: ", learning_rate)
-                    learning_rate = LineSearch(layers, self.p).lineSearch()
-
-                    if learning_rate <= 0:
+                #  Find step size
+                learning_rate = LineSearch(layers, self.p).lineSearch()
+                if learning_rate <= 0:
                         print("[ERROR] learning rate is < 0")
                         sys.exit()
-                    if learning_rate > 1:
-                        print("[ERROR] learning rate is > 0")
-                        sys.exit()
+                if learning_rate > 1:
+                    print("[ERROR] learning rate is > 0")
+                    sys.exit()
 
-                    print("\t\t\tLearning rate: ", learning_rate)
+                for layer in reversed(layers):
+
+                    # Save old gradient@weights.T
+                    q_old = layer.getGradientWeight().copy()
+
+                    # Save the old weights
+                    old_weights = layer.weights.copy()
 
                     # Update weights
                     layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                              layer.bias,
                                                                              layer.input,
-                                                                             -direction,
+                                                                             -layer.direction,
                                                                              learning_rate)
 
                     # Create the list of the new curvature, taking into account that the first element is
                     # s_{k}= w_{k+1} - w_{k} while the second one is the y_{k} = ∇f_{k+1} - ∇f_{k}
                     s = layer.weights - old_weights
+
+                    # Compute the new input.T@gradient
+                    layer.computeGradientWeight()
+                    q = layer.getGradientWeight()
+
                     y = q-q_old
 
                     # Secant equation
@@ -335,6 +340,9 @@ class LBFGSTraining(TrainingAlgorithm):
 
             # Save the accuracy/mee on test set for the graph
             accuracy_mee_tr.append(testFunction(training_set, labels))
+            print("Epoch: ", self.epoch,
+                  "\n\t TR error: ", error_on_trainingset[-1], " | VS error: ", error_on_validationset[-1],
+                  "\n\t TR accuracy: ", accuracy_mee_tr[-1], " | VS error: ", accuracy_mee[-1])
 
             # print("MEE/Accuracy on Train{}".format(accuracy_mee_tr[-1]))
             # print("MEE/Accuracy Valid{}".format(accuracy_mee[-1]))

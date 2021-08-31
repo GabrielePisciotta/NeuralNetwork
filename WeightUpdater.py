@@ -124,7 +124,7 @@ class LBFGSWeightUpdater(WeightUpdater):
             assert (False), \
                 "Invalid REGULARIZATION"
 
-    def update(self, weights, bias, input, delta, learning_rate):
+    def update(self, weights, bias, input, delta, learning_rate, during_linesearch=False):
 
         # Compute the new delta component
         delta_weights = delta
@@ -152,7 +152,8 @@ class LBFGSWeightUpdater(WeightUpdater):
         bias += delta_bias
 
         # Update the momentum state
-        self.Momentum.update(delta_weights, delta_bias)
+        if not during_linesearch:
+            self.Momentum.update(delta_weights, delta_bias)
 
         return weights, bias
 

@@ -8,13 +8,13 @@ def main(kind):
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
     
     algo = 'minibatch'
-    batchSize = 5
-    momentumAlpha = 0.8#.8
-    momentumBeta = 0.8#.8
+    batchSize = 50# 50
+    momentumAlpha = 0.5#.#.8#.8
+    momentumBeta = 0.5#.8#.8
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
-    regularizationlambda = 0# 0.0001 #0.001
+    regularizationlambda = 0.001#01# 0.0001 #0.001
 
     learnRate = 4.5#4.5 #0.2
 
@@ -42,7 +42,7 @@ def main(kind):
                 weightsInitializer = 'default',
                 task = 'classification',
                 kind = kind,
-                epochs=10
+                epochs=100
 
         )
 

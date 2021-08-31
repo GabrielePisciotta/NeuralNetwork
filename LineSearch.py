@@ -32,53 +32,52 @@ from Layer import *
 # LINE SEARCH CLASS
 class LineSearch():
     def __init__(self, currNetwork, params, c1=0.001, c2=0.9):
-        self.currNetwork = [copy.deepcopy(c) for c in currNetwork]
+        self.currNetwork = currNetwork
+        currNetwork_0 = self.getNetworkCopy(self.currNetwork)
+
         self.c1 = c1
         self.c2 = c2
         self.params = params
         self.alpha_0 = 0
         self.alpha_max = 1  # α_max > 0
         self.currAlpha = random.uniform(self.alpha_0, self.alpha_max)  # α_1 ∈ (0, α_max)
-        self.initialDirDotGrad = self.computeDirectionDescent(currNetwork)
-        self.phi0 = self.lineSearchEvaluate(0, currNetwork) 
+
+        self.initialDirDotGrad = self.computeDirectionDescent(currNetwork_0)
+        self.phi0 = self.lineSearchEvaluate(0, currNetwork_0)
         self.phiPrevAlpha = np.finfo(np.float64).max
-        
+
+    def getNetworkCopy(self, network):
+        return [copy.deepcopy(c) for c in network]
 
     # LINE SEARCH ALGORITHM FOR THE WOLFE CONDITIONS
-    def lineSearch(self):   
-        prevAlpha = self.alpha_0 
+    def lineSearch(self):
+        prevAlpha = self.alpha_0
+
         for i in range(100):
-            print("\tNel for... ", i)
-            phiCurrAlpha = self.lineSearchEvaluate(self.currAlpha, self.currNetwork)
+            NN_for_J =  self.getNetworkCopy(self.currNetwork)
+            phiCurrAlpha = self.lineSearchEvaluate(self.currAlpha, NN_for_J)
             if (phiCurrAlpha > self.phi0 + self.c1 * self.currAlpha * self.initialDirDotGrad) or (
                     i > 1 and phiCurrAlpha >= self.phiPrevAlpha):
-                #print("\t\tReturn zoom 1")
-                return self.zoom(self.currNetwork, self.c1, self.c2, prevAlpha, self.currAlpha, self.phi0,
+
+                return self.zoom(NN_for_J, self.c1, self.c2, prevAlpha, self.currAlpha, self.phi0,
                             self.initialDirDotGrad)
 
-            currDirDotGrad = self.computeDirectionDescent(self.currNetwork)
+            currDirDotGrad = self.computeDirectionDescent(NN_for_J)
 
             if (abs(currDirDotGrad) <= - self.c2 * self.initialDirDotGrad):
-                #print("\t\tReturn currAlpha")
                 return self.currAlpha
             if (currDirDotGrad >= 0):
-                #print("\t\tReturn zoom 2")
-                return self.zoom(self.currNetwork, self.c1, self.c2, self.currAlpha, prevAlpha, self.phi0,
+                return self.zoom(NN_for_J, self.c1, self.c2, self.currAlpha, prevAlpha, self.phi0,
                             self.initialDirDotGrad)
             self.phiPrevAlpha = phiCurrAlpha
             prevAlpha = self.currAlpha
             self.currAlpha = random.uniform(prevAlpha, self.alpha_max)
 
-        #print("\t\tReturn finale random")
         return self.currAlpha
 
-    def lineSearchEvaluate(self, stepSize, l):
+    def lineSearchEvaluate(self, stepSize, layers):
         if stepSize == []:
             stepSize = 0
-
-        # copy the layers in order to avoid changing of their internal values when computing the error
-        # (by changing the weights)
-        layers = [copy.deepcopy(ll) for ll in l]
 
         # Get the previously stored parameters
         training_set, labels, loss_function, TRLen = self.params
@@ -93,7 +92,7 @@ class LineSearch():
         for layer in reversed(layers):
 
             # Compute gradient
-            gradient = layer.backward(accumulated_gradient)
+            gradient = layer.backward(accumulated_gradient, True)
 
             # The following is needed in the following step of the backward propagation
             accumulated_gradient = gradient @ layer.weights.T
@@ -107,7 +106,7 @@ class LineSearch():
                                                                      layer.input,
                                                                      -direction,
                                                                      stepSize,
-                                                                     )
+                                                                     True)
 
 
         data = training_set
@@ -115,7 +114,7 @@ class LineSearch():
             data = layer.evaluate_input(data)
 
         # Save the error on the training set for the graph
-        return np.linalg.norm(loss_function.loss(labels, data)) * TRLen
+        return np.linalg.norm(loss_function.loss(labels, data))# * TRLen
 
 
     # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
@@ -125,6 +124,10 @@ class LineSearch():
 
     def cubicApproximation(self, alphaLow, phiAlphaLow, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi,
                            searchDirectionDotGradientAlphaHi):
+
+
+
+
         d1 = searchDirectionDotGradientAlphaLow + searchDirectionDotGradientAlphaHi - 3 * (phiAlphaLow - phiAlphaHi) / (
                 alphaLow - alphaHi)
         d2 = (1 if np.signbit(alphaHi - alphaLow) else -1) * math.sqrt(
@@ -145,22 +148,25 @@ class LineSearch():
 
 
     def zoom(self, currNetwork, c1, c2, alphaLow, alphaHi, phi0, initialDirDotGrad):
-        currNetwork = [copy.deepcopy(c) for c in currNetwork]
         i = 0
         alphaJ = 1
 
         # limit number of iteration to obtain a step length in a finite time
         while (i < 100):
+
             # Compute \phi(\alpha_{j})
-            phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+            currNetworkJ = self.getNetworkCopy(currNetwork)
+            phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworkJ)
 
             # Compute \phi(\alpha_{lo})
-            phiCurrAlphaLow = self.lineSearchEvaluate(alphaLow, currNetwork)
-            currDirDotGradAlphaLow = self.computeDirectionDescent(currNetwork)
+            currNetworkLow = self.getNetworkCopy(currNetwork)
+            phiCurrAlphaLow = self.lineSearchEvaluate(alphaLow, currNetworkLow)
+            currDirDotGradAlphaLow = self.computeDirectionDescent(currNetworkLow)
 
             # Compute \alpha_{hi}
-            phiCurrAlphaHi = self.lineSearchEvaluate(alphaHi, currNetwork)
-            currDirDotGradAlphaHi = self.computeDirectionDescent(currNetwork)
+            currNetworkHigh = self.getNetworkCopy(currNetwork)
+            phiCurrAlphaHi = self.lineSearchEvaluate(alphaHi, currNetworkHigh)
+            currDirDotGradAlphaHi = self.computeDirectionDescent(currNetworkHigh)
 
             # quadraticInterpolation
             if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
@@ -169,7 +175,8 @@ class LineSearch():
                                                 currDirDotGradAlphaLow,
                                                 alphaHi,
                                                 phiCurrAlphaHi)
-                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+                currNetworksearch = self.getNetworkCopy(currNetwork)
+                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)
 
             # cubicInterpolation
             if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
@@ -180,18 +187,21 @@ class LineSearch():
 
                 if alphaCubicInter > 0 and alphaCubicInter <= 1:
                     alphaJ = alphaCubicInter
-                    phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+                    currNetworksearch = self.getNetworkCopy(currNetwork)
+                    phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)
 
             # Bisection interpolation if quadratic goes wrong
             if alphaJ == 0:
                 alphaJ = alphaLow + (alphaHi - alphaLow) / 2
-                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
+                currNetworksearch = self.getNetworkCopy(currNetwork)
+                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)
 
             if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad) or phiCurrAlphaJ >= phiCurrAlphaLow:
                 alphaHi = alphaJ
             else:
                 # Compute \phi'(\alpha_{j})
-                currDirDotGrad = self.computeDirectionDescent(currNetwork)
+                currNetworksearch = self.getNetworkCopy(currNetwork)
+                currDirDotGrad = self.computeDirectionDescent(currNetworksearch)
 
                 if abs(currDirDotGrad) <= (-c2 * initialDirDotGrad):
                     return alphaJ
@@ -199,6 +209,18 @@ class LineSearch():
                 if currDirDotGrad * (alphaHi - alphaLow) >= 0:
                     alphaHi = alphaLow
                 alphaLow = alphaJ
+
+            """
+            Citing the book "Numerical Optimization":
+
+                If any α i is either too
+                close to its predecessor α_{i−1} or else too much smaller than α_{i−1},
+                we reset α_i to α_{i−1}/2. This safeguard procedure ensures that we make
+                reasonable progress on each iteration and that the ﬁnal α is not too small.
+            """
+            eps = np.finfo(np.float64).eps
+            if abs(alphaLow - alphaHi) <= eps or abs(alphaLow - alphaHi) == (alphaLow - eps):
+                alphaHi = alphaLow / 2
 
             i = i + 1
         return alphaJ

@@ -130,31 +130,35 @@ class LBFGSLayer:
     def getGradientWeight(self):
         return self.deltaweights
 
-    def evaluate_input(self, input):
-        self.input = input
-
-        # Store the previous net (if exists)
-        if hasattr(self, 'net'):
-            self.old_net = self.net.copy()
+    def evaluate_input(self, input, in_linesearch=False):
+        if not in_linesearch:
+            self.input = input
 
         # Update the net
-        self.net = (input @ self.weights) + self.bias
+        net = (input @ self.weights) + self.bias
+        output = self.activation_function.evaluate(net)
 
-        self.output = self.activation_function.evaluate(self.net)
-        return self.output
+        if not in_linesearch:
+            self.net = net
+            self.output = output
+
+        return output
 
     # @param value: since this function is called from NeuralNetwork class, we pass the label as `value` for the
     #               output layer, and we pass delta.dot(self.weights.T) for the hidden layer.
     # @return the gradient
-    def backward(self, value):
+    def backward(self, value, in_linesearch=False):
         if self.type == 'output':
             loss_deriv_by_o = (-1) * self.loss_function.deriv(value, self.output)
             activ_deriv = self.activation_function.deriv(self.net)
-            self.delta = loss_deriv_by_o * activ_deriv
+            delta = loss_deriv_by_o * activ_deriv
         else:
-            self.delta = value * self.activation_function.deriv(self.net)
+            delta = value * self.activation_function.deriv(self.net)
 
-        return self.delta
+        if not in_linesearch:
+            self.delta = delta
+
+        return delta
 
     def initializeWeights(self):
         if self.weightsInitializer == 'default':

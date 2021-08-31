@@ -7,6 +7,7 @@ from typing import List
 import random
 import math
 import copy
+from LineSearch import LineSearch
 
 
 RandomState = 4200000
@@ -151,6 +152,7 @@ class LBFGSTraining(TrainingAlgorithm):
 
         return γ * I
 
+    
     def get_direction(self, layer):
         # This method returns the direction -r = - H_{k} ∇ f_{k}
 
@@ -191,96 +193,6 @@ class LBFGSTraining(TrainingAlgorithm):
 
         else:
             return q.reshape(original_shape)
-
-
-    # LINE SEARCH ALGORITHM FOR THE WOLFE CONDITIONS
-    '''
-    The parameter α_max is a user-supplied bound on the maximum step length allowed.
-    '''
-    def lineSearch(self, currNetworkk, c1=0.001, c2=0.9):
-        currNetwork = [copy.deepcopy(c) for c in currNetworkk]
-
-        alpha_0 = 0
-        alpha_max = 1  # α_max > 0
-        currAlpha = random.uniform(alpha_0, alpha_max)  # α_1 ∈ (0, α_max)
-
-        initialDirDotGrad = self.computeDirectionDescent(currNetwork)
-
-        phi0 = self.lineSearchEvaluate(0, currNetwork)
-        prevAlpha = alpha_0
-
-        phiPrevAlpha = np.finfo(np.float64).max
-        for i in range(100):
-            print("\tNel for... ", i)
-            phiCurrAlpha = self.lineSearchEvaluate(currAlpha, currNetwork)
-            if (phiCurrAlpha > phi0 + c1 * currAlpha * initialDirDotGrad) or (
-                    i > 1 and phiCurrAlpha >= phiPrevAlpha):
-                print("\t\tReturn zoom 1")
-                return self.zoom(currNetwork, c1, c2, prevAlpha, currAlpha, phi0,
-                            initialDirDotGrad)
-
-            currDirDotGrad = self.computeDirectionDescent(currNetwork)
-
-            if (abs(currDirDotGrad) <= - c2 * initialDirDotGrad):
-                print("\t\tReturn currAlpha")
-                return currAlpha
-            if (currDirDotGrad >= 0):
-                print("\t\tReturn zoom 2")
-                return self.zoom(currNetwork, c1, c2, currAlpha, prevAlpha, phi0,
-                            initialDirDotGrad)
-            phiPrevAlpha = phiCurrAlpha
-            prevAlpha = currAlpha
-            currAlpha = random.uniform(prevAlpha, alpha_max)
-
-        print("\t\tReturn finale random")
-        return currAlpha
-
-    def lineSearchEvaluate(self, stepSize, l):
-        if stepSize == []:
-            stepSize = 0
-
-        # copy the layers in order to avoid changing of their internal values when computing the error
-        # (by changing the weights)
-        layers = [copy.deepcopy(ll) for ll in l]
-
-        # Get the previously stored parameters
-        training_set, labels, loss_function, TRLen = self.p
-
-        ################
-        # BACKWARD PHASE
-        ################
-        # After we've finished the feed forward phase, we calculate the delta of each layer
-        # and update weights.
-        accumulated_gradient = labels
-
-        for layer in reversed(layers):
-
-            # Compute gradient
-            gradient = layer.backward(accumulated_gradient)
-
-            # The following is needed in the following step of the backward propagation
-            accumulated_gradient = gradient @ layer.weights.T
-
-            # Get the previously computed direction
-            direction = layer.direction
-
-            # Update weights
-            layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
-                                                                     layer.bias,
-                                                                     layer.input,
-                                                                     -direction,
-                                                                     stepSize,
-                                                                     )
-
-
-        data = training_set
-        for layer in layers:
-            data = layer.evaluate_input(data)
-
-        # Save the error on the training set for the graph
-        return np.linalg.norm(loss_function.loss(labels, data)) * TRLen
-
-
 
     def train(self, layers, training_set, labels, learning_rate, loss_function, number_of_iterations, testFunction,
               minimumVariation, validation_set=np.array([]), validation_labels=np.array([]), test_set=np.array([]),
@@ -345,6 +257,7 @@ class LBFGSTraining(TrainingAlgorithm):
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
 
+
                     # Compute the new input.T@gradient
                     layer.computeGradientWeight()
                     q = layer.getGradientWeight()
@@ -358,15 +271,16 @@ class LBFGSTraining(TrainingAlgorithm):
                     old_weights = layer.weights.copy()
 
                     # Find the proper step / learning rate (line search)
-                    learning_rate = self.lineSearch(layers)#*np.sqrt(mb/TRLen)
+                    #learning_rate = self.lineSearch(layers)#*np.sqrt(mb/TRLen)
+                    #print("\t\t\tLearning rate: ", learning_rate)
+                    learning_rate = LineSearch(layers, self.p).lineSearch()
+
                     if learning_rate <= 0:
                         print("[ERROR] learning rate is < 0")
                         sys.exit()
                     if learning_rate > 1:
                         print("[ERROR] learning rate is > 0")
                         sys.exit()
-
-
 
                     print("\t\t\tLearning rate: ", learning_rate)
 
@@ -446,29 +360,10 @@ class LBFGSTraining(TrainingAlgorithm):
 
             self.epoch += 1
         return error_on_trainingset, self.epoch, error_on_validationset, accuracy_mee, accuracy_mee_tr
-    
-    '''
-    # Line-search conditions (page 33 from the CM book)
-    # WOLFE CONDITIONS
-    # 1. WOLFE CONDITION: Armijo condition, also called "sufficient decrease condition"
-    def wolfe_armijo_condition(self, f, g, xk, alpha, pk):
-        c1 = 1e-4
-        return f(xk + alpha * pk) <= f(xk) + c1 * alpha * np.dot(g(xk), pk)
 
-    # 2. WOLFE CONDITION: Curvature condition
-    def wolfe_curvature_condition(self, f, g, xk, alpha, pk):
-        c1 = 1e-4
-        return f(xk + alpha * pk) <= f(xk) + c1 * alpha * np.dot(g(xk), pk)
-
-    # STRONG WOLFE CONDITION
-    def strong_wolfe(self, f, g, xk, alpha, pk, c2):
-        return self.wolfe_armijo_condition(f, g, xk, alpha, pk) and abs(np.dot(g(xk + alpha * pk), pk)) <= c2 * abs(
-            np.dot(g(xk), pk))
-    '''
-    #TODO capire dove chiamare il metodo
     # SECANT EQUATION
     '''
-       s_{k}^T y_{k}>0      (6.7)
+        s_{k}^T y_{k}>0      (6.7)
     '''
     def secantEquation(self, layer):
         if len(layer.past_curvatures) > 0:
@@ -480,88 +375,3 @@ class LBFGSTraining(TrainingAlgorithm):
                 return True
         else:
             return True
-
-            # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
-    def quadraticApproximation(self, alphaLow, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):
-        return -(searchDirectionDotGradientAlphaLow * alphaHi ** 2) / (
-                2 * (phiAlphaHi - phiAlphaLo - searchDirectionDotGradientAlphaLow * alphaHi))
-
-    def cubicApproximation(self, alphaLow, phiAlphaLow, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi,
-                           searchDirectionDotGradientAlphaHi):
-        d1 = searchDirectionDotGradientAlphaLow + searchDirectionDotGradientAlphaHi - 3 * (phiAlphaLow - phiAlphaHi) / (
-                alphaLow - alphaHi)
-        d2 = (1 if np.signbit(alphaHi - alphaLow) else -1) * math.sqrt(
-            d1 ** 2 - searchDirectionDotGradientAlphaLow * searchDirectionDotGradientAlphaHi)
-        return alphaHi - (alphaHi - alphaLow) * ((searchDirectionDotGradientAlphaHi + d2 - d1) / (searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2))
-    
-    
-    '''
-    Compute dot product between the gradients store inside the layers \phi'
-    '''
-    def computeDirectionDescent(self, currNetwork):
-        searchDirectionDotGradient = 0
-        for currentLayer in currNetwork:
-            grad = currentLayer.getGradientWeight().ravel()
-            dir = currentLayer.GetDirection().ravel()
-            searchDirectionDotGradient += np.dot(dir.T, grad)
-        return searchDirectionDotGradient
-
-
-    def zoom(self, currNetworkk, c1, c2, alphaLow, alphaHi, phi0, initialDirDotGrad):
-        currNetwork = [copy.deepcopy(c) for c in currNetworkk]
-        i = 0
-        alphaJ = 1
-
-        # limit number of iteration to obtain a step length in a finite time
-        while (i < 100):
-            # Compute \phi(\alpha_{j})
-            phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
-
-            # Compute \phi(\alpha_{lo})
-            phiCurrAlphaLow = self.lineSearchEvaluate(alphaLow, currNetwork)
-            currDirDotGradAlphaLow = self.computeDirectionDescent(currNetwork)
-
-            # Compute \alpha_{hi}
-            phiCurrAlphaHi = self.lineSearchEvaluate(alphaHi, currNetwork)
-            currDirDotGradAlphaHi = self.computeDirectionDescent(currNetwork)
-
-            # quadraticInterpolation
-            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
-                alphaJ = self.quadraticApproximation(alphaLow,
-                                                phiCurrAlphaLow,
-                                                currDirDotGradAlphaLow,
-                                                alphaHi,
-                                                phiCurrAlphaHi)
-                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
-
-            # cubicInterpolation
-            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
-                alphaCubicInter = self.cubicApproximation(alphaLow, phiCurrAlphaLow,
-                                                     currDirDotGradAlphaLow, alphaHi,
-                                                     phiCurrAlphaHi,
-                                                     currDirDotGradAlphaHi)
-
-                if alphaCubicInter > 0 and alphaCubicInter <= 1:
-                    alphaJ = alphaCubicInter
-                    phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
-
-            # Bisection interpolation if quadratic goes wrong
-            if alphaJ == 0:
-                alphaJ = alphaLow + (alphaHi - alphaLow) / 2
-                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetwork)
-
-            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad) or phiCurrAlphaJ >= phiCurrAlphaLow:
-                alphaHi = alphaJ
-            else:
-                # Compute \phi'(\alpha_{j})
-                currDirDotGrad = self.computeDirectionDescent(currNetwork)
-
-                if abs(currDirDotGrad) <= (-c2 * initialDirDotGrad):
-                    return alphaJ
-
-                if currDirDotGrad * (alphaHi - alphaLow) >= 0:
-                    alphaHi = alphaLow
-                alphaLow = alphaJ
-
-            i = i + 1
-        return alphaJ

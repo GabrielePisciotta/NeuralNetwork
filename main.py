@@ -4,7 +4,6 @@ from KFoldCrossValidation import KFoldCrossValidation
 from NeuralNetwork import NeuralNetwork
 from Utilities import ReadMonk
 
-
 def main(kind):
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
     

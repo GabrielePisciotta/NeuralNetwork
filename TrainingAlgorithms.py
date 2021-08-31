@@ -345,7 +345,6 @@ class LBFGSTraining(TrainingAlgorithm):
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
 
-
                     # Compute the new input.T@gradient
                     layer.computeGradientWeight()
                     q = layer.getGradientWeight()
@@ -360,6 +359,10 @@ class LBFGSTraining(TrainingAlgorithm):
 
                     # Find the proper step / learning rate (line search)
                     learning_rate = self.lineSearch(layers)#*np.sqrt(mb/TRLen)
+                    if learning_rate < 0:
+                        print("[ERROR] learning rate is < 0")
+                        sys.exit()
+
                     print("\t\t\tLearning rate: ", learning_rate)
 
                     # Update weights

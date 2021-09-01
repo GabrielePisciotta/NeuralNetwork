@@ -109,6 +109,7 @@ def ReadBlindCup():
 def plot_convergence_rate(error):
     now = datetime.now()
 
+    np.seterr(all='print')
     rates = []
     d = np.abs(error - error[-1])
     for i in range(len(d)-1):

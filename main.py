@@ -8,7 +8,7 @@ def main(kind):
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
     
     algo = 'minibatch'
-    batchSize = 50#len(train_examples)# 50
+    batchSize = len(train_examples)#len(train_examples)# 50
     momentumAlpha = 0#.5#.5#.#.8#.8
     momentumBeta = 0#.5#.8#.8
 

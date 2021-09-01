@@ -252,8 +252,6 @@ class LBFGSTraining(TrainingAlgorithm):
                 # Compute directions
                 accumulated_delta = label
                 for layer in reversed(layers):
-                    # Save old gradient@weights.T
-                    q_old = layer.getGradientWeight().copy()
 
                     # Get the backward resulting gradient
                     gradient = layer.backward(accumulated_delta)
@@ -263,11 +261,10 @@ class LBFGSTraining(TrainingAlgorithm):
 
                     # Compute the new input.T@gradient
                     layer.computeGradientWeight()
-                    q = layer.getGradientWeight()
 
                     # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
                     # and store it for further usages (i.e.: find alpha!)
-                    direction = -self.get_direction(layer)
+                    direction = self.get_direction(layer)
                     layer.direction = direction
 
                 #  Find step size
@@ -291,7 +288,7 @@ class LBFGSTraining(TrainingAlgorithm):
                     layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                              layer.bias,
                                                                              layer.input,
-                                                                             -layer.direction,
+                                                                             layer.direction,
                                                                              learning_rate)
 
                     # Create the list of the new curvature, taking into account that the first element is

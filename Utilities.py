@@ -106,6 +106,22 @@ def ReadBlindCup():
 
     return df
 
+def plot_convergence_rate(error):
+    now = datetime.now()
+
+    rates = []
+    d = np.abs(error - error[-1])
+    for i in range(len(d)-1):
+        rates.append(np.log(d[i+1])/np.log(d[i]))
+
+    plt.plot(range(len(error)-1), rates, "-b")#, label='Convergence rate')
+    #plt.legend(loc="upper right")
+    plt.xlabel("Error")
+    plt.ylabel("Convergence rate")
+
+    plt.savefig('training_error{}.png'.format(now.strftime("%H%M%S")), format='png', dpi=300)
+    plt.show()
+
 def plot_error_curve(epochs, error, error_on_validation):
     now = datetime.now()
     print("Number of epochs: {}".format(epochs))

@@ -76,8 +76,8 @@ class LineSearch():
         return self.currAlpha
 
     def lineSearchEvaluate(self, stepSize, layers):
-        if stepSize == []:
-            stepSize = 0
+
+        #layers = [copy.deepcopy(ll) for ll in l]
 
         # Get the previously stored parameters
         training_set, labels, loss_function, TRLen = self.params
@@ -88,7 +88,6 @@ class LineSearch():
         # After we've finished the feed forward phase, we calculate the delta of each layer
         # and update weights.
         accumulated_gradient = labels
-
         for layer in reversed(layers):
 
             # Compute gradient
@@ -111,25 +110,22 @@ class LineSearch():
 
         data = training_set
         for layer in layers:
-            data = layer.evaluate_input(data)
+            data = layer.evaluate_input(data, True)
 
         # Save the error on the training set for the graph
-        return np.linalg.norm(loss_function.loss(labels, data))# * TRLen
+        return np.linalg.norm(loss_function.loss(labels, data))
 
 
     # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
-    def quadraticApproximation(self, alphaLow, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):
+    def quadraticApproximation(self, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):
         return -(searchDirectionDotGradientAlphaLow * alphaHi ** 2) / (
                 2 * (phiAlphaHi - phiAlphaLo - searchDirectionDotGradientAlphaLow * alphaHi))
 
     def cubicApproximation(self, alphaLow, phiAlphaLow, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi,
                            searchDirectionDotGradientAlphaHi):
 
-
-
-
-        d1 = searchDirectionDotGradientAlphaLow + searchDirectionDotGradientAlphaHi - 3 * (phiAlphaLow - phiAlphaHi) / (
-                alphaLow - alphaHi)
+        d1 = searchDirectionDotGradientAlphaLow + searchDirectionDotGradientAlphaHi -\
+             3 * (phiAlphaLow - phiAlphaHi) / (alphaLow - alphaHi)
         d2 = (1 if np.signbit(alphaHi - alphaLow) else -1) * math.sqrt(
             d1 ** 2 - searchDirectionDotGradientAlphaLow * searchDirectionDotGradientAlphaHi)
         return alphaHi - (alphaHi - alphaLow) * ((searchDirectionDotGradientAlphaHi + d2 - d1) / (searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2))
@@ -151,14 +147,20 @@ class LineSearch():
         i = 0
         alphaJ = 1
 
-        # limit number of iteration to obtain a step length in a finite time
-        while (i < 100):
-
+        """
+        From the "Numerical Optimization" book:
+             Therefore, the line search must include a stopping test if it cannot attain a lower function
+            value after a certain number (typically, ten) of trial step lengths. Some procedures also
+            stop if the relative change in x is close to machine precision, or to some user-speciﬁed
+            threshold
+        
+        """
+        while i < 7:# or alphaJ-alphaLow <= np.finfo(np.float64).eps:
             # Compute \phi(\alpha_{j})
             currNetworkJ = self.getNetworkCopy(currNetwork)
             phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworkJ)
 
-            # Compute \phi(\alpha_{lo})
+            # Compute \phi(\acontinuelpha_{lo})
             currNetworkLow = self.getNetworkCopy(currNetwork)
             phiCurrAlphaLow = self.lineSearchEvaluate(alphaLow, currNetworkLow)
             currDirDotGradAlphaLow = self.computeDirectionDescent(currNetworkLow)
@@ -169,33 +171,50 @@ class LineSearch():
             currDirDotGradAlphaHi = self.computeDirectionDescent(currNetworkHigh)
 
             # quadraticInterpolation
-            if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
-                alphaJ = self.quadraticApproximation(alphaLow,
-                                                phiCurrAlphaLow,
+            """if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
+                alphaJ = self.quadraticApproximation(phiCurrAlphaLow,
                                                 currDirDotGradAlphaLow,
                                                 alphaHi,
                                                 phiCurrAlphaHi)
                 currNetworksearch = self.getNetworkCopy(currNetwork)
-                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)
+                phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)"""
+            # Bisection interpolation if quadratic goes wrong
+            #if alphaJ == 0:
+            #    alphaJ = alphaLow + (alphaHi - alphaLow) / 2
 
             # cubicInterpolation
             if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
-                alphaCubicInter = self.cubicApproximation(alphaLow, phiCurrAlphaLow,
-                                                     currDirDotGradAlphaLow, alphaHi,
-                                                     phiCurrAlphaHi,
-                                                     currDirDotGradAlphaHi)
+                alphaCubicInter = self.cubicApproximation(alphaLow,
+                                                          phiCurrAlphaLow,
+                                                          currDirDotGradAlphaLow,
+                                                          alphaHi,
+                                                          phiCurrAlphaHi,
+                                                          currDirDotGradAlphaHi)
 
                 if alphaCubicInter > 0 and alphaCubicInter <= 1:
                     alphaJ = alphaCubicInter
                     currNetworksearch = self.getNetworkCopy(currNetwork)
                     phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)
+                else:
+                    alphaJ = 0
 
-            # Bisection interpolation if quadratic goes wrong
-            if alphaJ == 0:
-                alphaJ = alphaLow + (alphaHi - alphaLow) / 2
+
+            """
+            Citing the book "Numerical Optimization":
+
+                If any α_{i} is either too
+                close to its predecessor α_{i−1} or else too much smaller than α_{i−1},
+                we reset α_i to α_{i−1}/2. This safeguard procedure ensures that we make
+                reasonable progress on each iteration and that the ﬁnal α is not too small.
+            """
+            eps = np.finfo(np.float64).eps
+            if alphaJ == 0 or abs(alphaJ - alphaLow) <= 0.001:#eps or alphaJ == alphaLow+eps or alphaJ == alphaLow-eps:
+                #print("[INFO] Safeguard encountered: alphaJ==0->", alphaJ == 0, "|abs(alphaJ - alphaLow) <= 0.001-> ", abs(alphaJ - alphaLow) <= 0.01)
+                alphaJ = alphaLow / 2
                 currNetworksearch = self.getNetworkCopy(currNetwork)
                 phiCurrAlphaJ = self.lineSearchEvaluate(alphaJ, currNetworksearch)
 
+            # Now that alpha_j is found...
             if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad) or phiCurrAlphaJ >= phiCurrAlphaLow:
                 alphaHi = alphaJ
             else:
@@ -210,17 +229,6 @@ class LineSearch():
                     alphaHi = alphaLow
                 alphaLow = alphaJ
 
-            """
-            Citing the book "Numerical Optimization":
-
-                If any α i is either too
-                close to its predecessor α_{i−1} or else too much smaller than α_{i−1},
-                we reset α_i to α_{i−1}/2. This safeguard procedure ensures that we make
-                reasonable progress on each iteration and that the ﬁnal α is not too small.
-            """
-            eps = np.finfo(np.float64).eps
-            if abs(alphaLow - alphaHi) <= eps or abs(alphaLow - alphaHi) == (alphaLow - eps):
-                alphaHi = alphaLow / 2
 
             i = i + 1
         return alphaJ

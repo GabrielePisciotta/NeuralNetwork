@@ -4,7 +4,7 @@ from copy import deepcopy
 from Layer import Layer, LBFGSLayer
 from LossFunctions import SquareLoss
 from TrainingAlgorithms import MiniBatchLearning, LBFGSTraining
-from Utilities import plot_error_curve, plot_accuracy_mee
+from Utilities import plot_error_curve, plot_accuracy_mee, plot_convergence_rate
 from Metric import Accuracy, MEE
 
 class NeuralNetwork:
@@ -195,11 +195,13 @@ class NeuralNetwork:
 
             if plot == True:
                 plot_error_curve(epochs, error, error_on_validation)
+                plot_convergence_rate(error)
                 if self.task == 'regression':
                     label = "MEE"
                 else:
                     label = "Accuracy"
                 plot_accuracy_mee(accuracy_mee, accuracy_mee_tr, label)
+
             return error, error_on_validation
 
         else:

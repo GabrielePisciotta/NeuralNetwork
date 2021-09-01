@@ -204,6 +204,9 @@ class LBFGSTraining(TrainingAlgorithm):
 
         m = 7
 
+        min_norma_grad_loss= 5e-5 # TODO: parametrizzare
+        min_loss= 1e-2
+
         TRLen = training_set.shape[0]  # Size of the whole training set
         batchRanges = range(self.batchSize, TRLen + 1, self.batchSize)
 
@@ -354,9 +357,13 @@ class LBFGSTraining(TrainingAlgorithm):
                 if self.epoch >= number_of_iterations:
                     print("Number of max iter reached")
                     break
-                if err_tr <= np.finfo(np.float).eps:
-                    print("Minimum gradient")
+                if err_tr <= min_loss + np.finfo(np.float).eps:
+                    print("Minimum loss")
                     break
+
+                """if abs(np.linalg.norm(layers[-1].getGradientWeight())) <= min_norma_grad_loss + np.finfo(np.float).eps:
+                    print("Minimum gradient getGradientWeight: ", abs(np.linalg.norm(layers[-1].getGradientWeight())))
+                    break"""
 
                 if (self.epoch > 10):
                     diff = (error_on_trainingset[self.epoch] - error_on_trainingset[self.epoch - 1]) / \

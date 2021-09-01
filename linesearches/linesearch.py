@@ -28,8 +28,6 @@ np.seterr(all='raise')
 class LineSearch():
     def __init__(self, network, params, c1=0.001, c2=0.9):
         self.network = network
-        network__0 = self.getNetworkCopy(self.network)
-
         self.c1 = c1
         self.c2 = c2
         self.params = params
@@ -37,8 +35,8 @@ class LineSearch():
         self.alpha_max = 1  # α_max > 0
         self.currAlpha = random.uniform(self.alpha_0, self.alpha_max)  # α_1 ∈ (0, α_max)
 
-        self.initialDirDotGrad = self.computeDirectionDescent(network__0)
-        self.phi0 = self.evaluate(0, network__0)
+        self.phi0, self.initialDirDotGrad, _ = self.phi_phiprime_network(network, self.alpha_0)
+
         self.phiPrevAlpha = np.finfo(np.float64).max
 
     def getNetworkCopy(self, network):
@@ -49,19 +47,16 @@ class LineSearch():
         prevAlpha = self.alpha_0
 
         for i in range(10):
-            network_J =  self.getNetworkCopy(self.network)
-            phiCurrAlpha = self.evaluate(self.currAlpha, network_J)
+            phiCurrAlpha, currDirDotGrad, network_J = self.phi_phiprime_network(self.network, self.currAlpha)
             if (phiCurrAlpha > self.phi0 + self.c1 * self.currAlpha * self.initialDirDotGrad) or (
                     i > 1 and phiCurrAlpha >= self.phiPrevAlpha):
 
-                return self.zoom(network_J, self.c1, self.c2, prevAlpha, self.currAlpha,self.initialDirDotGrad)
-
-            currDirDotGrad = self.computeDirectionDescent(network_J)
+                return self.zoom(self.getNetworkCopy(network_J), self.c1, self.c2, prevAlpha, self.currAlpha,self.initialDirDotGrad)
 
             if (abs(currDirDotGrad) <= - self.c2 * self.initialDirDotGrad):
                 return self.currAlpha
             if (currDirDotGrad >= 0):
-                return self.zoom(network_J, self.c1, self.c2, self.currAlpha, prevAlpha,self.initialDirDotGrad)
+                return self.zoom(self.getNetworkCopy(network_J), self.c1, self.c2, self.currAlpha, prevAlpha,self.initialDirDotGrad)
 
             self.phiPrevAlpha = phiCurrAlpha
             prevAlpha = self.currAlpha
@@ -69,11 +64,18 @@ class LineSearch():
 
         return self.currAlpha
 
-    def evaluate(self, stepSize, layerss):
-        layers = [copy.deepcopy(l) for l in layerss]
+    def evaluate(self, stepSize, layers):
+        #layers = [copy.deepcopy(l) for l in layerss]
 
         # Get the previously stored parameters
         training_set, labels, loss_function, TRLen = self.params
+
+        """
+        FORWARD PHASE
+        """
+        data = np.array(training_set)
+        for layer in layers:
+            data = layer.evaluate_input(data)
 
         ################
         # BACKWARD PHASE
@@ -91,6 +93,9 @@ class LineSearch():
 
             # Get the previously computed direction
             direction = layer.direction
+
+            # Compute the new input.T@gradient
+            layer.computeGradientWeight()
 
             # Update weights
             layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
@@ -127,17 +132,24 @@ class LineSearch():
             return alphaHi - (alphaHi - alphaLow) * ((searchDirectionDotGradientAlphaHi + d2 - d1) / (searchDirectionDotGradientAlphaHi - searchDirectionDotGradientAlphaLow + 2 * d2))
         except:
             return 0
-    
+
     '''
     Compute dot product between the gradients store inside the layers \phi'
     '''
     def computeDirectionDescent(self, network):
         searchDirectionDotGradient = 0
         for currentLayer in network:
+            #currentLayer.computeGradientWeight()
             grad = currentLayer.getGradientWeight().ravel()
             dir = currentLayer.GetDirection().ravel()
             searchDirectionDotGradient += np.dot(dir.T, grad)
         return searchDirectionDotGradient
+
+    def phi_phiprime_network(self, network_passed, alpha):
+        network = self.getNetworkCopy(network_passed)
+        phi = self.evaluate(alpha, network)
+        phi_prime = self.computeDirectionDescent(network)
+        return phi, phi_prime, network
 
 
     def zoom(self, network, c1, c2, alphaLow, alphaHi, initialDirDotGrad):
@@ -153,18 +165,14 @@ class LineSearch():
         """
         for i in range(5):
             # Compute \phi(\alpha_{j})
-            network_J = self.getNetworkCopy(network)
-            phiCurrAlphaJ = self.evaluate(alphaJ, network_J)
+            phiCurrAlphaJ, currDirDotGradAlphaJ, network_J = self.phi_phiprime_network(network, alphaJ)
 
-            # Compute \phi(\acontinuelpha_{lo})
-            network_Low = self.getNetworkCopy(network)
-            phiCurrAlphaLow = self.evaluate(alphaLow, network_Low)
-            currDirDotGradAlphaLow = self.computeDirectionDescent(network_Low)
+            # Compute \phi(\alpha_{lo})
+            phiCurrAlphaLow, currDirDotGradAlphaLow, network_Low = self.phi_phiprime_network(network, alphaLow)
 
-            # Compute \alpha_{hi}
-            network_High = self.getNetworkCopy(network)
-            phiCurrAlphaHi = self.evaluate(alphaHi, network_High)
-            currDirDotGradAlphaHi = self.computeDirectionDescent(network_High)
+            # Compute \phi(\alpha_{hi})
+            phiCurrAlphaHi, currDirDotGradAlphaHi, network_High = self.phi_phiprime_network(network, alphaHi)
+
 
             # quadraticInterpolation
             if phiCurrAlphaJ > (self.phi0 + c1 * alphaJ * initialDirDotGrad):
@@ -172,11 +180,11 @@ class LineSearch():
                                                 currDirDotGradAlphaLow,
                                                 alphaHi,
                                                 phiCurrAlphaHi)
-                network_search = self.getNetworkCopy(network)
-                phiCurrAlphaJ = self.evaluate(alphaJ, network_search)
+                phiCurrAlphaJ, currDirDotGradAlphaJ, network_J = self.phi_phiprime_network(network, alphaJ)
             # Bisection interpolation if quadratic goes wrong
             if alphaJ == 0:
                 alphaJ = alphaLow + (alphaHi - alphaLow) / 2
+                phiCurrAlphaJ, currDirDotGradAlphaJ, network_J = self.phi_phiprime_network(network, alphaJ)
 
             # cubicInterpolation
             if phiCurrAlphaJ > (self.phi0 + c1 * alphaJ * initialDirDotGrad):
@@ -189,8 +197,8 @@ class LineSearch():
 
                 if alphaCubicInter > 0 and alphaCubicInter <= 1:
                     alphaJ = alphaCubicInter
-                    network_J = self.getNetworkCopy(network)
-                    phiCurrAlphaJ = self.evaluate(alphaJ, network_J)
+                    phiCurrAlphaJ, currDirDotGradAlphaJ, network_J = self.phi_phiprime_network(network, alphaJ)
+
                 else:
                     alphaJ = 0
 
@@ -204,23 +212,20 @@ class LineSearch():
                 reasonable progress on each iteration and that the ﬁnal α is not too small.
             """
             #eps = np.finfo(np.float64).eps
-            if alphaJ == 0:# or abs(alphaJ - alphaLow) <= 0.001:#eps or alphaJ == alphaLow+eps or alphaJ == alphaLow-eps:
+            if alphaJ == 0 or abs(alphaJ - alphaLow) <= 0.001:#eps or alphaJ == alphaLow+eps or alphaJ == alphaLow-eps:
                 #print("[INFO] Safeguard encountered: alphaJ==0->", alphaJ == 0, "|abs(alphaJ - alphaLow) <= 0.001-> ", abs(alphaJ - alphaLow) <= 0.01)
                 alphaJ = alphaLow / 2
-                network_J = self.getNetworkCopy(network)
-                phiCurrAlphaJ = self.evaluate(alphaJ, network_J)
+                phiCurrAlphaJ, currDirDotGradAlphaJ, network_J = self.phi_phiprime_network(network, alphaJ)
 
             # Now that alpha_j is found, check conditions
             if phiCurrAlphaJ > (self.phi0 + c1 * alphaJ * initialDirDotGrad) or phiCurrAlphaJ >= phiCurrAlphaLow:
                 alphaHi = alphaJ
             else:
-                # Compute \phi'(\alpha_{j})
-                currDirDotGrad = self.computeDirectionDescent(network_J)
 
-                if abs(currDirDotGrad) <= (-c2 * initialDirDotGrad):
+                if abs(currDirDotGradAlphaJ) <= (-c2 * initialDirDotGrad):
                     return alphaJ
 
-                if currDirDotGrad * (alphaHi - alphaLow) >= 0:
+                if currDirDotGradAlphaJ * (alphaHi - alphaLow) >= 0:
                     alphaHi = alphaLow
                 alphaLow = alphaJ
 

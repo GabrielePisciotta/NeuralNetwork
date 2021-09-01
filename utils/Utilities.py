@@ -1,7 +1,6 @@
 import csv
 import math
 from datetime import datetime
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -117,20 +116,20 @@ def plot_convergence_rate(error):
 
     plt.plot(range(len(error)-1), rates, "-b")#, label='Convergence rate')
     #plt.legend(loc="upper right")
-    plt.xlabel("Error")
+    plt.xlabel("Iteration")
     plt.ylabel("Convergence rate")
 
     plt.savefig('training_error{}.png'.format(now.strftime("%H%M%S")), format='png', dpi=300)
     plt.show()
 
-def plot_error_curve(epochs, error, error_on_validation):
+def plot_error_curve(Iterations, error, error_on_validation):
     now = datetime.now()
-    print("Number of epochs: {}".format(epochs))
-    plt.plot(range(len(error)), error, "-b", label='Error on Training Set')
-    plt.plot(range(len(error_on_validation)), error_on_validation, "--r", label='Error on Test Set')
+    print("Number of Iterations: {}".format(Iterations))
+    plt.plot(range(len(error)), error, "-b", label='Loss value on Training Set')
+    plt.plot(range(len(error_on_validation)), error_on_validation, "--r", label='Loss value on Test Set')
     plt.legend(loc="upper right")
-    plt.xlabel("Epoch")
-    plt.ylabel("Error")
+    plt.xlabel("Iteration")
+    plt.ylabel("Loss value")
 
     plt.savefig('training_error{}.png'.format(now.strftime("%H%M%S")), format='png', dpi=300)
     plt.show()
@@ -141,7 +140,7 @@ def plot_accuracy_mee(accuracy_mee, accuracy_mee_on_training, label):
     plt.plot(range(len(accuracy_mee_on_training)), accuracy_mee_on_training, "blue", label=label+" on Training Set")
 
     plt.legend(loc="upper left")
-    plt.xlabel("Epoch")
+    plt.xlabel("Iteration")
     plt.ylabel(label)
 
     plt.savefig('accuracy_mee{}.png'.format(now.strftime("%H%M%S")), format='png', dpi=300)

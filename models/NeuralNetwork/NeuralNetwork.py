@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
-from Layer import Layer, LBFGSLayer
-from LossFunctions import SquareLoss
-from TrainingAlgorithms import MiniBatchLearning, LBFGSTraining
-from Utilities import plot_error_curve, plot_accuracy_mee, plot_convergence_rate
-from Metric import Accuracy, MEE
+from models.NeuralNetwork.Layer import Layer, LBFGSLayer
+from lossfunctions.MSE import MSE
+from optimizers.SGD import MiniBatchLearning
+from optimizers.LBFGS import LBFGSTraining
+from utils.Utilities import plot_error_curve, plot_accuracy_mee, plot_convergence_rate
+from metrics.accuracy import  Accuracy
+from metrics.mee import MEE
 
 class NeuralNetwork:
 
@@ -20,7 +22,7 @@ class NeuralNetwork:
         self.momentumBeta = momentumBeta
         
         if losstype == 'squareloss':
-            self.loss_function = SquareLoss()
+            self.loss_function = MSE()
         else:
             assert(False), \
                 "Invalid LOSS function"

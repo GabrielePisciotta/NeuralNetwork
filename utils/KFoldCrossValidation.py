@@ -1,13 +1,10 @@
 from sklearn.utils import shuffle
-from math import sqrt
 import numpy as np
 from multiprocessing import Pool
-from queue import Queue
 from tqdm import *
-from scipy.stats import kurtosis
 from timeit import default_timer as timer
-from Utilities import printToFile
-from NeuralNetwork import NeuralNetwork
+from utils.Utilities import printToFile
+from models.NeuralNetwork import NeuralNetwork
 RandomState = 4200000
 
 class KFoldCrossValidation:

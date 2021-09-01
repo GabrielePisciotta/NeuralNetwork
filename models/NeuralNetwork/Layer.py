@@ -1,7 +1,9 @@
 import numpy as np
-from ActivationFunctions import Sigmoid, Linear, Softplus
-from LossFunctions import SquareLoss
-from WeightUpdater import CompoundWeightUpdater, LBFGSWeightUpdater
+from activationfunctions.sigmoid import Sigmoid
+from activationfunctions.linear import  Linear
+from activationfunctions.softplus import Softplus
+from lossfunctions.MSE import MSE
+from weightupdaters.WeightUpdater import CompoundWeightUpdater, LBFGSWeightUpdater
 from math import sqrt
 class Layer:
 

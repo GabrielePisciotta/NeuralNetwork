@@ -1,6 +1,7 @@
 import numpy as np
 
-from RegularizationFunctions import NullRegularization, L2Regularization
+from regularizers.L2 import  L2Regularization
+from regularizers.null import  NullRegularization
 
 class WeightUpdater(object):
     def __init__(self):

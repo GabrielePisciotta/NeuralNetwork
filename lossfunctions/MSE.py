@@ -1,6 +1,6 @@
 import numpy as np
 
-class SquareLoss:
+class MSE:
     def __init__(self): pass
 
     def loss(self, y, y_pred):

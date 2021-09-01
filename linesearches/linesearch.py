@@ -1,14 +1,8 @@
-import sys
-
-import numpy as np
 import random
 import math
 import copy
 
-from sklearn.utils import shuffle
-from typing import List
-
-from Layer import *
+from models.NeuralNetwork.Layer import *
 np.seterr(all='raise')
 
 '''
@@ -75,9 +69,8 @@ class LineSearch():
 
         return self.currAlpha
 
-    def evaluate(self, stepSize, ll):
-
-        layers = [copy.deepcopy(ll) for ll in ll]
+    def evaluate(self, stepSize, layerss):
+        layers = [copy.deepcopy(l) for l in layerss]
 
         # Get the previously stored parameters
         training_set, labels, loss_function, TRLen = self.params
@@ -91,7 +84,7 @@ class LineSearch():
         for layer in reversed(layers):
 
             # Compute gradient
-            gradient = layer.backward(accumulated_gradient, True)
+            gradient = layer.backward(accumulated_gradient, False)
 
             # The following is needed in the following step of the backward propagation
             accumulated_gradient = gradient @ layer.weights.T
@@ -105,12 +98,12 @@ class LineSearch():
                                                                      layer.input,
                                                                      direction,
                                                                      stepSize,
-                                                                     True)
+                                                                     False)
 
 
         data = training_set
         for layer in layers:
-            data = layer.evaluate_input(data, True)
+            data = layer.evaluate_input(data, False)
 
         # Save the error on the training set for the graph
         return np.linalg.norm(loss_function.loss(labels, data))/len(training_set)
@@ -118,8 +111,11 @@ class LineSearch():
 
     # STEP-LENGTH SELECTION ALGORITHM - INTERPOLATION pag 56
     def quadraticApproximation(self, phiAlphaLo, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi):
-        return -(searchDirectionDotGradientAlphaLow * alphaHi ** 2) / (
-                2 * (phiAlphaHi - phiAlphaLo - searchDirectionDotGradientAlphaLow * alphaHi))
+        try:
+            return -(searchDirectionDotGradientAlphaLow * alphaHi ** 2) / (
+                    2 * (phiAlphaHi - phiAlphaLo - searchDirectionDotGradientAlphaLow * alphaHi))
+        except:
+            return 0
 
     def cubicApproximation(self, alphaLow, phiAlphaLow, searchDirectionDotGradientAlphaLow, alphaHi, phiAlphaHi,
                            searchDirectionDotGradientAlphaHi):
@@ -145,7 +141,6 @@ class LineSearch():
 
 
     def zoom(self, network, c1, c2, alphaLow, alphaHi, initialDirDotGrad):
-        i = 0
         alphaJ = 1
 
         """
@@ -172,16 +167,16 @@ class LineSearch():
             currDirDotGradAlphaHi = self.computeDirectionDescent(network_High)
 
             # quadraticInterpolation
-            """if phiCurrAlphaJ > (phi0 + c1 * alphaJ * initialDirDotGrad):
+            if phiCurrAlphaJ > (self.phi0 + c1 * alphaJ * initialDirDotGrad):
                 alphaJ = self.quadraticApproximation(phiCurrAlphaLow,
                                                 currDirDotGradAlphaLow,
                                                 alphaHi,
                                                 phiCurrAlphaHi)
                 network_search = self.getNetworkCopy(network)
-                phiCurrAlphaJ = self.evaluate(alphaJ, network_search)"""
+                phiCurrAlphaJ = self.evaluate(alphaJ, network_search)
             # Bisection interpolation if quadratic goes wrong
-            #if alphaJ == 0:
-            #    alphaJ = alphaLow + (alphaHi - alphaLow) / 2
+            if alphaJ == 0:
+                alphaJ = alphaLow + (alphaHi - alphaLow) / 2
 
             # cubicInterpolation
             if phiCurrAlphaJ > (self.phi0 + c1 * alphaJ * initialDirDotGrad):

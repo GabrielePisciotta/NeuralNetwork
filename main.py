@@ -1,8 +1,9 @@
 import numpy as np
-from GridSearch import GridSearch
-from KFoldCrossValidation import KFoldCrossValidation
-from NeuralNetwork import NeuralNetwork
-from Utilities import ReadMonk
+from utils.GridSearch import GridSearch
+from utils.KFoldCrossValidation import KFoldCrossValidation
+from utils.Utilities import ReadMonk
+
+from models.NeuralNetwork.NeuralNetwork import NeuralNetwork
 
 def main(kind):
     train_examples, train_labels, test_examples, test_labels = ReadMonk(1)
@@ -284,5 +285,5 @@ def GridSearch_Monk3():
 
 if __name__ == '__main__':
     main(kind='L-BFGS')
-    main(kind='SGD')
+    #main(kind='SGD')
     #GridSearch_MiniBatch_Monk1()

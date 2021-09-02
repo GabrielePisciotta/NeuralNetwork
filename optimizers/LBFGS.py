@@ -141,7 +141,7 @@ class LBFGSTraining():
                 for layer in reversed(layers):
 
                     # Save old gradient@weights.T
-                    q_old = layer.delta @ layer.weights.T#layer.getGradientWeight().copy()
+                    q_old = layer.delta# @ layer.weights.T#layer.getGradientWeight().copy()
 
                     # Save the old weights
                     old_weights = layer.weights.copy()
@@ -157,7 +157,7 @@ class LBFGSTraining():
                     s = layer.weights - old_weights
 
                     # Compute the new input.T@gradient
-                    q = layer.delta@layer.weights.T #layer.getGradientWeight()
+                    q = layer.delta #layer.getGradientWeight()
 
                     y = q - q_old
 

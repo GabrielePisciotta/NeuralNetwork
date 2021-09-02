@@ -133,7 +133,7 @@
       <workItem from="1630517832217" duration="18757000" />
       <workItem from="1630570895336" duration="528000" />
       <workItem from="1630571440218" duration="131000" />
-      <workItem from="1630571592983" duration="6668000" />
+      <workItem from="1630571592983" duration="7144000" />
     </task>
     <task id="LOCAL-00001" summary="Added L-BFGS weight updater">
       <created>1628700765472</created>
@@ -360,6 +360,6 @@
     <option name="LAST_COMMIT_MESSAGE" value="somethingelse" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/NeuralNetwork$main.coverage" NAME="main Coverage Results" MODIFIED="1630578234320" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/NeuralNetwork$main.coverage" NAME="main Coverage Results" MODIFIED="1630578699568" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

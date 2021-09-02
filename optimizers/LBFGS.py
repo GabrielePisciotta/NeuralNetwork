@@ -20,30 +20,32 @@ class LBFGSTraining():
         # following the equation H_{k}^{0} = γ_{k}*I, where γ_{k} = \frac{s^T_{k-1}y_{k-1}}{y^T_{k-1}y_{k-1}}
         # (eq. 7.20 from the Numerical Optimization book)
 
-        I = np.ones((layer.getGradientWeight().shape[0], layer.getGradientWeight().shape[1]))
+        I = np.ones((layer.delta.shape[0], layer.delta[0].shape[1]))
 
         s, y = layer.past_curvatures[-1]
 
-        γ = s.T @ y / y.T @ y
+        γ = np.dot(s.T, y) / np.dot(y.T, y)
 
         return γ * I
 
     def get_direction(self, layer):
         # This method returns the direction -r = - H_{k} ∇ f_{k}
 
-        q = layer.delta
+        q = layer.delta.copy()
         original_shape = copy.deepcopy(q.shape)
 
+        q = q.ravel()
         # We'll skip the first γ creation (we have not sufficient information from the past curvatures)
         print("Len of past curv: ", len(layer.past_curvatures))
 
-        if len(layer.past_curvatures) > 1:
+        if len(layer.past_curvatures) > 0:
 
             # From latest curvature to the first
             for s, y in reversed(layer.past_curvatures):
                 print("s, ", s.shape)
                 print("y, ", y.shape)
-
+                s = s.ravel()
+                y = y.ravel()
                 ρ = 1 / np.dot(y.T, s)
                 α = ρ * np.dot(s.T, q)
                 print("shape alfa: ", α.shape)
@@ -125,9 +127,6 @@ class LBFGSTraining():
                     # and store it for further usages (i.e.: find alpha!)
                     layer.direction = self.get_direction(layer)
 
-                    # Compute the new input.T@gradient
-                    layer.deltaweights = layer.input.T @ layer.direction
-
 
                 #  Find step size
                 learning_rate = LineSearch(layers, self.p).lineSearch()
@@ -141,12 +140,10 @@ class LBFGSTraining():
                 for layer in reversed(layers):
 
                     # Save old gradient@weights.T
-                    q_old = layer.delta# @ layer.weights.T#layer.getGradientWeight().copy()
+                    q_old = layer.delta.copy()# @ layer.weights.T#layer.getGradientWeight().copy()
 
                     # Save the old weights
                     old_weights = layer.weights.copy()
-
-                    #layer.deltaweights = layer.input.T @ layer.direction
 
                     # Update weights
                     layer.weights, layer.bias = layer.weights_updater.update(layer,
@@ -157,7 +154,7 @@ class LBFGSTraining():
                     s = layer.weights - old_weights
 
                     # Compute the new input.T@gradient
-                    q = layer.delta #layer.getGradientWeight()
+                    q = layer.delta.copy() #layer.getGradientWeight()
 
                     y = q - q_old
 

@@ -158,6 +158,7 @@ class LBFGSLayer:
         # The following is needed in the following step of the backward propagation
         accumulated_delta = delta @ self.weights.T
 
+        print("DELTA SHAPE: ", delta.shape)
         if not in_linesearch:
             self.delta = delta
 

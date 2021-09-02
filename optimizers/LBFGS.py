@@ -78,7 +78,7 @@ class LBFGSTraining():
         accuracy_mee = []
         accuracy_mee_tr = []
 
-        m = 7
+        m = 15
 
         min_norma_grad_loss = 5e-5  # TODO: parametrizzare
         min_loss = 1e-2
@@ -136,8 +136,8 @@ class LBFGSTraining():
 
                 #  Find step size
                 learning_rate = LineSearch(layers, self.p).lineSearch()
-                if learning_rate <= 0:
-                    print("[ERROR] learning rate is < 0")
+                if learning_rate < 0:
+                    print("[ERROR] learning rate is < 0: ", learning_rate)
                     sys.exit()
                 if learning_rate > 1:
                     print("[ERROR] learning rate is > 0")

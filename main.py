@@ -15,7 +15,7 @@ def main(kind):
 
     losstype = 'squareloss'
     regularizationtype = 'l2'
-    regularizationlambda = 0.0010#001#01# 0.0001 #0.001
+    regularizationlambda = 3e-4#0.001#001#01# 0.0001 #0.001
 
     learnRate = 4.5#4.5 #0.2
 

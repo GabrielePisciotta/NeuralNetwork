@@ -130,7 +130,7 @@ class LBFGSWeightUpdater(WeightUpdater):
         weights, bias, input, delta = layer.weights, layer.bias, layer.input, layer.delta
 
         print("SHAPE delta: ", layer.delta.shape)
-        layer.gradientweights = layer.input.T @ layer.delta
+        layer.gradientweights = layer.input.T @ layer.direction
 
         delta_weights = layer.gradientweights
 

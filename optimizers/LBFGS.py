@@ -164,7 +164,7 @@ class LBFGSTraining():
 
                     # If the norm of both s and y is greater enough, store it
                     #if np.linalg.norm(s) > 1 and np.linalg.norm(y) > np.finfo(np.float64).eps:
-                    layer.past_curvatures.append([s, y])
+                    #layer.past_curvatures.append([s, y])
 
                     # Remove the oldest element in order to keep the list with the desired size (m)
                     if len(layer.past_curvatures) > m:

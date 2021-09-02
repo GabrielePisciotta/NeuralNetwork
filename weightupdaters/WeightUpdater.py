@@ -125,8 +125,14 @@ class LBFGSWeightUpdater(WeightUpdater):
             assert (False), \
                 "Invalid REGULARIZATION"
 
-    def update(self, weights, bias, input, d, learning_rate, during_linesearch=False):
-        delta_weights, delta = d
+    def update(self, layer, learning_rate, during_linesearch=False):
+
+        weights, bias, input, delta = layer.weights, layer.bias, layer.input, layer.delta
+
+        print("SHAPE delta: ", layer.delta.shape)
+        layer.gradientweights = layer.input.T @ layer.delta
+
+        delta_weights = layer.gradientweights
 
         # Compute the new delta component
         delta_bias = np.sum(delta, axis=0)#, keepdims=True) # TODO: sistemare questo delta?
@@ -149,6 +155,8 @@ class LBFGSWeightUpdater(WeightUpdater):
             (self.lamb * RegularizationBias)
 
         # Update the values
+
+        print("SHAPES: \n\t weights: ", layer.weights.shape, "\n\t deltaweights: ", delta_weights.shape)
         weights += delta_weights
         bias += delta_bias
 

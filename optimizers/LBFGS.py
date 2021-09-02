@@ -23,8 +23,6 @@ class LBFGSTraining():
         I = np.ones((layer.getGradientWeight().shape[0], layer.getGradientWeight().shape[1]))
 
         s, y = layer.past_curvatures[-1]
-        s = s.ravel()
-        y = y.ravel()
 
         γ = s.T @ y / y.T @ y
 
@@ -36,9 +34,6 @@ class LBFGSTraining():
         q = layer.delta
         original_shape = copy.deepcopy(q.shape)
 
-        # Flattened vector
-        q = q.ravel()
-
         # We'll skip the first γ creation (we have not sufficient information from the past curvatures)
         print("Len of past curv: ", len(layer.past_curvatures))
 
@@ -46,11 +41,14 @@ class LBFGSTraining():
 
             # From latest curvature to the first
             for s, y in reversed(layer.past_curvatures):
-                s = s.ravel()
-                y = y.ravel()
+                print("s, ", s.shape)
+                print("y, ", y.shape)
 
-                ρ = 1 / (y.T @ s)
-                α = ρ * (s.T @ q)
+                ρ = 1 / np.dot(y.T, s)
+                α = ρ * np.dot(s.T, q)
+                print("shape alfa: ", α.shape)
+                print("shape q:", q.shape)
+                print("shape ro: ",  ρ.shape)
                 q = q - α * y
 
             H_0 = self.get_H_0(layer)
@@ -58,14 +56,12 @@ class LBFGSTraining():
 
             # From first curvature to the last
             for s, y in layer.past_curvatures:
-                s = s.ravel()
-                y = y.ravel()
 
                 ρ = 1 / (y.T @ s)
                 α = ρ * (s.T @ q)
 
-                β = ρ * (y.T @ r.ravel())
-                r = r.ravel() + s * (np.array(α) - np.array(β))
+                β = ρ * (y.T @ r)
+                r = r + s * (np.array(α) - np.array(β))
 
             return r.reshape(original_shape)
 
@@ -120,13 +116,10 @@ class LBFGSTraining():
                 BACKWARD PHASE:
                 """
                 # Compute directions
-                accumulated_delta = label
+                gradient = label
                 for layer in reversed(layers):
                     # Get the backward resulting gradient
-                    gradient = layer.backward(accumulated_delta)
-
-                    # The following is needed in the following step of the backward propagation
-                    accumulated_delta = gradient @ layer.weights.T
+                    gradient = layer.backward(gradient)
 
                     # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
                     # and store it for further usages (i.e.: find alpha!)
@@ -156,10 +149,7 @@ class LBFGSTraining():
                     #layer.deltaweights = layer.input.T @ layer.direction
 
                     # Update weights
-                    layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
-                                                                             layer.bias,
-                                                                             layer.input,
-                                                                             (layer.deltaweights, layer.direction),
+                    layer.weights, layer.bias = layer.weights_updater.update(layer,
                                                                              learning_rate)
 
                     # Create the list of the new curvature, taking into account that the first element is
@@ -176,8 +166,8 @@ class LBFGSTraining():
                     #    sys.exit()
 
                     # If the norm of both s and y is greater enough, store it
-                    if np.linalg.norm(s) > 1 and np.linalg.norm(y) > np.finfo(np.float64).eps:
-                        layer.past_curvatures.append([s, y])
+                    #if np.linalg.norm(s) > 1 and np.linalg.norm(y) > np.finfo(np.float64).eps:
+                    layer.past_curvatures.append([s, y])
 
                     # Remove the oldest element in order to keep the list with the desired size (m)
                     if len(layer.past_curvatures) > m:
@@ -251,7 +241,7 @@ class LBFGSTraining():
     def secantEquation(self, layer):
         if len(layer.past_curvatures) > 0:
             s, y = layer.past_curvatures[-1]
-            if (np.dot(s.ravel().T, y.ravel()) <= 0):
+            if (np.dot(s.T, y) <= 0):
                 print("[ERROR] Secant equation not satisfied")
                 return False
             else:

@@ -80,23 +80,14 @@ class LineSearch():
         ################
         # After we've finished the feed forward phase, we calculate the delta of each layer
         # and update weights.
-        accumulated_gradient = labels
+        gradient = labels
         for layer in reversed(layers):
 
             # Compute gradient
-            gradient = layer.backward(accumulated_gradient, False)
-
-            # The following is needed in the following step of the backward propagation
-            accumulated_gradient = gradient @ layer.weights.T
-
-            # Compute the new input.T @ direction
-            layer.gradientweights = layer.input.T @ layer.direction
+            gradient = layer.backward(gradient, False)
 
             # Update weights
-            layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
-                                                                     layer.bias,
-                                                                     layer.input,
-                                                                     (layer.gradientweights, layer.direction),
+            layer.weights, layer.bias = layer.weights_updater.update(layer,
                                                                      stepSize,
                                                                      False)
 

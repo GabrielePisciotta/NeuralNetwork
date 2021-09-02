@@ -155,10 +155,13 @@ class LBFGSLayer:
         else:
             delta = value * self.activation_function.deriv(self.net)
 
+        # The following is needed in the following step of the backward propagation
+        accumulated_delta = delta @ self.weights.T
+
         if not in_linesearch:
             self.delta = delta
 
-        return delta
+        return accumulated_delta
 
     def initializeWeights(self):
         if self.weightsInitializer == 'default':

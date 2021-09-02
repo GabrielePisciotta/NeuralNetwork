@@ -33,13 +33,15 @@ class LBFGSTraining():
     def get_direction(self, layer):
         # This method returns the direction -r = - H_{k} ∇ f_{k}
 
-        q = layer.getGradientWeight()
+        q = layer.delta
         original_shape = copy.deepcopy(q.shape)
 
         # Flattened vector
         q = q.ravel()
 
         # We'll skip the first γ creation (we have not sufficient information from the past curvatures)
+        print("Len of past curv: ", len(layer.past_curvatures))
+
         if len(layer.past_curvatures) > 1:
 
             # From latest curvature to the first
@@ -126,13 +128,13 @@ class LBFGSTraining():
                     # The following is needed in the following step of the backward propagation
                     accumulated_delta = gradient @ layer.weights.T
 
-                    # Compute the new input.T@gradient
-                    layer.computeGradientWeight()
-
                     # Compute the direction -H_{k} ∇f_{k} (Algorithm 7.4 from the book)
                     # and store it for further usages (i.e.: find alpha!)
-                    direction = self.get_direction(layer)
-                    layer.direction = direction
+                    layer.direction = self.get_direction(layer)
+
+                    # Compute the new input.T@gradient
+                    layer.deltaweights = layer.input.T @ layer.direction
+
 
                 #  Find step size
                 learning_rate = LineSearch(layers, self.p).lineSearch()
@@ -146,16 +148,18 @@ class LBFGSTraining():
                 for layer in reversed(layers):
 
                     # Save old gradient@weights.T
-                    q_old = layer.getGradientWeight().copy()
+                    q_old = layer.delta @ layer.weights.T#layer.getGradientWeight().copy()
 
                     # Save the old weights
                     old_weights = layer.weights.copy()
+
+                    #layer.deltaweights = layer.input.T @ layer.direction
 
                     # Update weights
                     layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                              layer.bias,
                                                                              layer.input,
-                                                                             layer.direction,
+                                                                             (layer.deltaweights, layer.direction),
                                                                              learning_rate)
 
                     # Create the list of the new curvature, taking into account that the first element is
@@ -163,14 +167,13 @@ class LBFGSTraining():
                     s = layer.weights - old_weights
 
                     # Compute the new input.T@gradient
-                    #layer.computeGradientWeight()
-                    q = layer.getGradientWeight()
+                    q = layer.delta@layer.weights.T #layer.getGradientWeight()
 
                     y = q - q_old
 
                     # Secant equation
-                    if not self.secantEquation(layer):
-                        sys.exit()
+                    #if not self.secantEquation(layer):
+                    #    sys.exit()
 
                     # If the norm of both s and y is greater enough, store it
                     if np.linalg.norm(s) > 1 and np.linalg.norm(y) > np.finfo(np.float64).eps:

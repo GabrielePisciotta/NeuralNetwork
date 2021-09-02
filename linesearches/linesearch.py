@@ -46,14 +46,12 @@ class LineSearch():
     def lineSearch(self):
         prevAlpha = self.alpha_0
 
-        for i in range(10):
+        for i in range(100):
             phiCurrAlpha, currDirDotGrad, network_J = self.phi_phiprime_network(self.network, self.currAlpha)
-            if (phiCurrAlpha > self.phi0 + self.c1 * self.currAlpha * self.initialDirDotGrad) or (
-                    i > 1 and phiCurrAlpha >= self.phiPrevAlpha):
-
+            if (phiCurrAlpha > (self.phi0 + self.c1 * self.currAlpha * self.initialDirDotGrad)) or (i > 1 and phiCurrAlpha >= self.phiPrevAlpha):
                 return self.zoom(self.getNetworkCopy(network_J), self.c1, self.c2, prevAlpha, self.currAlpha,self.initialDirDotGrad)
 
-            if (abs(currDirDotGrad) <= - self.c2 * self.initialDirDotGrad):
+            if (np.linalg.norm(currDirDotGrad) <= - self.c2 * self.initialDirDotGrad):
                 return self.currAlpha
             if (currDirDotGrad >= 0):
                 return self.zoom(self.getNetworkCopy(network_J), self.c1, self.c2, self.currAlpha, prevAlpha,self.initialDirDotGrad)
@@ -73,9 +71,9 @@ class LineSearch():
         """
         FORWARD PHASE
         """
-        data = np.array(training_set)
-        for layer in layers:
-            data = layer.evaluate_input(data)
+        #data = np.array(training_set)
+        #for layer in layers:
+        #    data = layer.evaluate_input(data)
 
         ################
         # BACKWARD PHASE
@@ -91,17 +89,14 @@ class LineSearch():
             # The following is needed in the following step of the backward propagation
             accumulated_gradient = gradient @ layer.weights.T
 
-            # Get the previously computed direction
-            direction = layer.direction
-
-            # Compute the new input.T@gradient
-            layer.computeGradientWeight()
+            # Compute the new input.T @ direction
+            layer.gradientweights = layer.input.T @ layer.direction
 
             # Update weights
             layer.weights, layer.bias = layer.weights_updater.update(layer.weights,
                                                                      layer.bias,
                                                                      layer.input,
-                                                                     direction,
+                                                                     (layer.gradientweights, layer.direction),
                                                                      stepSize,
                                                                      False)
 
@@ -137,13 +132,17 @@ class LineSearch():
     Compute dot product between the gradients store inside the layers \phi'
     '''
     def computeDirectionDescent(self, network):
-        searchDirectionDotGradient = 0
+        """searchDirectionDotGradient = 0
         for currentLayer in network:
-            #currentLayer.computeGradientWeight()
             grad = currentLayer.getGradientWeight().ravel()
             dir = currentLayer.GetDirection().ravel()
             searchDirectionDotGradient += np.dot(dir.T, grad)
-        return searchDirectionDotGradient
+        return searchDirectionDotGradient"""
+        # TODO: uhm?!
+        sum = 0
+        for layer in network:
+            sum += np.linalg.norm(layer.deltaweights)
+        return sum
 
     def phi_phiprime_network(self, network_passed, alpha):
         network = self.getNetworkCopy(network_passed)
@@ -163,7 +162,7 @@ class LineSearch():
             threshold
         
         """
-        for i in range(5):
+        for i in range(2):
             # Compute \phi(\alpha_{j})
             phiCurrAlphaJ, currDirDotGradAlphaJ, network_J = self.phi_phiprime_network(network, alphaJ)
 

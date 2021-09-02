@@ -129,8 +129,6 @@ class LBFGSLayer:
     def GetDirection(self):
         return self.direction
 
-    def getGradientWeight(self):
-        return self.deltaweights
 
     def evaluate_input(self, input, in_linesearch=False):
         if not in_linesearch:

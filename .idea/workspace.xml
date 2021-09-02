@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="9cfddab3-b546-4288-b47b-1dc0123e0d10" name="Changes" comment="somethingelse" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="ProjectId" id="1waZquk2UCxdlSRIciy2SrNlwwe" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="TODO_SCOPE" value="All Places" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="restartRequiresConfirmation" value="false" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/models/NeuralNetwork" />
+      <recent name="$PROJECT_DIR$/weightupdaters" />
+      <recent name="$PROJECT_DIR$/regularizers" />
+      <recent name="$PROJECT_DIR$/activationfunctions" />
+      <recent name="$PROJECT_DIR$/lossfunctions" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="NeuralNetwork" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$PROJECT_DIR$/venv/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="true" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9cfddab3-b546-4288-b47b-1dc0123e0d10" name="Changes" comment="" />
+      <created>1628698853589</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1628698853589</updated>
+      <workItem from="1628698860474" duration="1972000" />
+      <workItem from="1628748645625" duration="9142000" />
+      <workItem from="1628867646954" duration="23241000" />
+      <workItem from="1629014250700" duration="20181000" />
+      <workItem from="1629098476174" duration="17520000" />
+      <workItem from="1629119670855" duration="5930000" />
+      <workItem from="1629193361995" duration="34476000" />
+      <workItem from="1629277978494" duration="7048000" />
+      <workItem from="1629299481855" duration="4673000" />
+      <workItem from="1630230860031" duration="16843000" />
+      <workItem from="1630420019727" duration="21010000" />
+      <workItem from="1630498206238" duration="4073000" />
+      <workItem from="1630517832217" duration="18757000" />
+      <workItem from="1630570895336" duration="528000" />
+      <workItem from="1630571440218" duration="131000" />
+      <workItem from="1630571592983" duration="4646000" />
+    </task>
+    <task id="LOCAL-00001" summary="Added L-BFGS weight updater">
+      <created>1628700765472</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1628700765472</updated>
+    </task>
+    <task id="LOCAL-00002" summary="???">
+      <created>1628868923823</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1628868923823</updated>
+    </task>
+    <task id="LOCAL-00003" summary="L-BFGS without searching of alpha">
+      <created>1629103582887</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1629103582887</updated>
+    </task>
+    <task id="LOCAL-00004" summary="L-BFGS without searching of alpha">
+      <created>1629117192757</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1629117192757</updated>
+    </task>
+    <task id="LOCAL-00005" summary="L-BFGS without searching of alpha">
+      <created>1629118937940</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1629118937940</updated>
+    </task>
+    <task id="LOCAL-00006" summary="?">
+      <created>1629198587958</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1629198587958</updated>
+    </task>
+    <task id="LOCAL-00007" summary="OK">
+      <created>1629212732922</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1629212732922</updated>
+    </task>
+    <task id="LOCAL-00008" summary="mah">
+      <created>1629223078741</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1629223078741</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Working">
+      <created>1629239590710</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1629239590710</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Working">
+      <created>1629239692844</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1629239692844</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Exploiting the line search to get the better alpha">
+      <created>1629279019461</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1629279019461</updated>
+    </task>
+    <task id="LOCAL-00012" summary="commit">
+      <created>1629282130310</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1629282130310</updated>
+    </task>
+    <task id="LOCAL-00013" summary="line search fix">
+      <created>1629283107112</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1629283107112</updated>
+    </task>
+    <task id="LOCAL-00014" summary="min fix">
+      <created>1629284535623</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1629284535623</updated>
+    </task>
+    <task id="LOCAL-00015" summary="comments">
+      <created>1629289643738</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1629289643738</updated>
+    </task>
+    <task id="LOCAL-00016" summary="fix?">
+      <created>1629302507207</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1629302507207</updated>
+    </task>
+    <task id="LOCAL-00017" summary="fix?">
+      <created>1629302578684</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1629302578684</updated>
+    </task>
+    <task id="LOCAL-00018" summary="fixissimo?">
+      <created>1629303712659</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1629303712659</updated>
+    </task>
+    <task id="LOCAL-00019" summary="secant eq">
+      <created>1630232300458</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1630232300461</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Check if learning rate &lt; 0">
+      <created>1630420460138</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1630420460138</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Check if 0 &lt; learning rate &lt;= 1">
+      <created>1630420624719</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1630420624719</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Fix">
+      <created>1630430557529</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1630430557529</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Fix n clean">
+      <created>1630456246365</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1630456246365</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Working">
+      <created>1630501662218</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1630501662222</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Refactoring">
+      <created>1630533674745</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1630533674745</updated>
+    </task>
+    <task id="LOCAL-00026" summary="somethingelse">
+      <created>1630538126639</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1630538126639</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Added L-BFGS weight updater" />
+    <MESSAGE value="???" />
+    <MESSAGE value="L-BFGS without searching of alpha" />
+    <MESSAGE value="?" />
+    <MESSAGE value="OK" />
+    <MESSAGE value="mah" />
+    <MESSAGE value="Exploiting the line search to get the better alpha" />
+    <MESSAGE value="commit" />
+    <MESSAGE value="line search fix" />
+    <MESSAGE value="min fix" />
+    <MESSAGE value="comments" />
+    <MESSAGE value="fix?" />
+    <MESSAGE value="fixissimo?" />
+    <MESSAGE value="secant eq" />
+    <MESSAGE value="Check if learning rate &lt; 0" />
+    <MESSAGE value="Check if 0 &lt; learning rate &lt;= 1" />
+    <MESSAGE value="Fix" />
+    <MESSAGE value="Fix n clean" />
+    <MESSAGE value="Working" />
+    <MESSAGE value="Refactoring" />
+    <MESSAGE value="somethingelse" />
+    <option name="LAST_COMMIT_MESSAGE" value="somethingelse" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/NeuralNetwork$main.coverage" NAME="main Coverage Results" MODIFIED="1630576222337" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>

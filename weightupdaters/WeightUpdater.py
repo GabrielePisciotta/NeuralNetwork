@@ -125,10 +125,10 @@ class LBFGSWeightUpdater(WeightUpdater):
             assert (False), \
                 "Invalid REGULARIZATION"
 
-    def update(self, weights, bias, input, delta, learning_rate, during_linesearch=False):
+    def update(self, weights, bias, input, d, learning_rate, during_linesearch=False):
+        delta_weights, delta = d
 
         # Compute the new delta component
-        delta_weights = delta
         delta_bias = np.sum(delta, axis=0)#, keepdims=True) # TODO: sistemare questo delta?
 
         # Compute the momentum term
